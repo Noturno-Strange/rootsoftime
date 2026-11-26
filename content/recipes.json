@@ -1,0 +1,98 @@
+{
+  "mill": {
+    "Milho": [
+      "Fubá",
+      4
+    ]
+  },
+  "press": {
+    "Massa ralada": [
+      "Massa prensada",
+      4
+    ]
+  },
+  "stove": {
+    "Fubá": [
+      "Angu",
+      6
+    ],
+    "Milho": [
+      "Milho cozido",
+      5
+    ],
+    "Mandioca": [
+      "Mandioca cozida",
+      6
+    ],
+    "Feijão": [
+      "Feijão de panela",
+      6
+    ],
+    "Arroz": [
+      "Arroz branco",
+      5
+    ],
+    "Manga": [
+      "Doce de manga",
+      5
+    ],
+    "Massa peneirada": [
+      "Farinha de mandioca",
+      6
+    ],
+    "Leite com manga": [
+      "Creme de manga",
+      6
+    ],
+    "Arroz e feijão": [
+      "Baião da vila",
+      6
+    ]
+  },
+  "wash": {
+    "Mandioca": [
+      "Mandioca lavada",
+      2
+    ]
+  },
+  "grater": {
+    "Mandioca lavada": [
+      "Massa ralada",
+      3
+    ],
+    "Milho": [
+      "Massa de milho",
+      3
+    ]
+  },
+  "sieve": {
+    "Massa prensada": [
+      "Massa peneirada",
+      3
+    ]
+  },
+  "oven": {
+    "Massa de broa": [
+      "Broa de milho",
+      7
+    ],
+    "Massa de milho": [
+      "Pamonha",
+      6
+    ]
+  },
+  "pan": {
+    "Ovos": [
+      "Ovos mexidos",
+      4
+    ],
+    "Leite": [
+      "Leite quente",
+      4
+    ],
+    "Massa peneirada": [
+      "Beiju",
+      4
+    ]
+  }
+}

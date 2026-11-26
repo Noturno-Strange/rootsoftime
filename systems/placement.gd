@@ -1,0 +1,144 @@
+extends RefCounted
+
+const SITES := {
+	"home":[Vector2(365,375),"home",233,126], "mill":[Vector2(765,330),"mill",205,104],
+	"school":[Vector2(1245,311),"school",218,145], "stove":[Vector2(515,484),"stove",98,48],
+	"table":[Vector2(353,550),"table",76,60], "market":[Vector2(1014,710),"market",155,88],
+	"storage":[Vector2(685,489),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
+	"wash":[Vector2(565,358),"wash",54,28], "grater":[Vector2(643,375),"grater",55,27],
+	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(272,621),"stove",80,38],
+	"pan":[Vector2(428,476),"stove",66,32], "mix":[Vector2(334,671),"table",53,32],
+	"hen":[Vector2(1024,522),"hen",34,8], "cow":[Vector2(1130,787),"cow",73,38],
+	"orchard":[Vector2(1200,586),"mango",196,24]
+}
+const SPAWN := Vector2(457,674)
+const CHILD_HOME := Vector2(400,548)
+const CHILD_SCHOOL := Vector2(1245,336)
+const BOUNDS := Rect2(90,175,1360,755)
+var roofs: Dictionary = {}
+var interiors: Dictionary = {}
+var anchors: Dictionary = {}
+var visuals: Dictionary = {}
+var plants: Array[Sprite2D] = []
+var beds: Array[Sprite2D] = []
+var display: Node2D
+var art: RefCounted
+
+func obstacle(parent: Node2D, half_width: float, depth: float) -> void:
+	var body := StaticBody2D.new()
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(half_width * 2,depth)
+	shape.shape = rect
+	shape.position.y = -depth/2
+	body.add_child(shape)
+	parent.add_child(body)
+
+func place(key: String, pos: Vector2, height: float, solid: float = 0) -> Node2D:
+	var node := Node2D.new()
+	node.position = pos
+	display.add_child(node)
+	var shadow := Polygon2D.new()
+	var points := PackedVector2Array()
+	for i in range(24):
+		var angle := TAU * i / 24.0
+		points.append(Vector2(cos(angle)*height*0.32, sin(angle)*height*0.07-2))
+	shadow.polygon = points
+	shadow.color = Color(0.19,0.15,0.07,0.22)
+	node.add_child(shadow)
+	node.add_child(art.sprite(key,height))
+	if solid > 0: obstacle(node,solid,minf(65,height*0.25))
+	return node
+
+func building(key: String, d: Array) -> Node2D:
+	var center: Vector2 = d[0]
+	var width := float(d[3])*2
+	var inside := Node2D.new()
+	inside.position = center-Vector2(0,105)
+	display.add_child(inside)
+	var room: Sprite2D = art.sprite("house_room" if key == "home" else "school_room",width*0.66)
+	room.position.y = 105
+	inside.add_child(room)
+	for piece: Array in [[Vector2(0,-94),width/2,10],[Vector2(-width/2+6,0),6,94],[Vector2(width/2-6,0),6,94]]:
+		var wall := Node2D.new()
+		wall.position = center + piece[0]
+		display.add_child(wall)
+		obstacle(wall,piece[1],piece[2])
+	var front := place(key,center,d[2])
+	roofs[key] = front
+	interiors[key] = inside
+	return front
+
+func reveal_rooms(viewer: Vector2, delta: float) -> void:
+	for key: String in roofs:
+		var relative: Vector2 = viewer - SITES[key][0]
+		var inside := absf(relative.x) < float(SITES[key][3])-7 and relative.y < 12 and relative.y > -105
+		var roof: Node2D = roofs[key]
+		roof.modulate.a = move_toward(roof.modulate.a,0.0 if inside else 1.0,delta*5)
+		interiors[key].visible = roof.modulate.a < 0.999
+
+func build(root: Node2D, atlas: RefCounted) -> void:
+	art = atlas
+	var ground := Sprite2D.new()
+	ground.texture = preload("res://assets/ground.webp")
+	ground.centered = false
+	root.add_child(ground)
+	display = Node2D.new()
+	display.y_sort_enabled = true
+	root.add_child(display)
+	for key: String in SITES:
+		var d: Array = SITES[key]
+		if key in ["home","school"]:
+			visuals[key] = building(key,d)
+		else:
+			visuals[key] = place(d[1],d[0],d[2],d[3])
+		anchors[key] = d[0] + Vector2(0,12)
+	for i in range(8):
+		var pos := Vector2(460 + (i%4)*78,646 + floori(i/4.0)*83)
+		anchors["plot%d" % i] = pos
+		var base := Node2D.new()
+		base.position = pos
+		display.add_child(base)
+		var bed: Sprite2D = art.sprite("soil",37)
+		bed.modulate = Color(0.78,0.77,0.65)
+		base.add_child(bed)
+		beds.append(bed)
+		var plant: Sprite2D = art.sprite("seedling",16)
+		plant.position.y = -9
+		base.add_child(plant)
+		plants.append(plant)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1942
+	for i in range(18):
+		var pos := Vector2(i*94+rng.randf_range(-22,22),rng.randf_range(142,206))
+		place("banana" if i%3==0 else "mango",pos,rng.randf_range(145,225),18)
+	for side in [70,1478]:
+		for i in range(6):
+			place("mango" if i%2==0 else "banana",Vector2(side+rng.randf_range(-20,20),330+i*120),rng.randf_range(138,199),15)
+	for pos in [Vector2(230,455),Vector2(1113,370),Vector2(1090,833),Vector2(278,809)]:
+		place("banana",pos,113,12)
+
+func nearest(pos: Vector2) -> String:
+	var best := 68.0
+	var target := ""
+	for key: String in anchors:
+		var dist := pos.distance_to(anchors[key])
+		if dist < best:
+			best = dist
+			target = key
+	return target
+
+func refresh(farm: RefCounted) -> void:
+	for i in range(plants.size()):
+		var p: Dictionary = farm.state.plots[i]
+		var stage := int(p.stage)
+		plants[i].visible = stage >= 2
+		beds[i].modulate = [Color(0.64,0.68,0.51),Color.WHITE,Color.WHITE,Color(0.74,0.71,0.64),Color.WHITE][stage]
+		if stage < 2: continue
+		var key: String = ["corn","cassava","rice","bean"][int(p.crop)]
+		var height := 51.0
+		if stage == 2: height = 12
+		if stage == 3: height = 29
+		if p.crop != 0 and stage < 4: key = ["seedling","rootbud","ricebud","beanbud"][int(p.crop)]
+		if p.crop == 0 and stage < 4: key = "young" if stage == 3 else "seedling"
+		art.paint(plants[i],key,height)
