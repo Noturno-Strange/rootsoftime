@@ -20,5 +20,11 @@ func _ready() -> void:
 	emitting = false
 	local_coords = false
 
+const CYCLE := 240.0
+const RAIN_START := 181.0
+
+static func seconds_until_rain(time: float) -> float:
+	return maxf(0.0, RAIN_START - fmod(time, CYCLE))
+
 static func raining(time: float) -> bool:
-	return fmod(time,240.0) >= 181.0
+	return seconds_until_rain(time) == 0.0

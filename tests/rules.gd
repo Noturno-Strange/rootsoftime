@@ -43,6 +43,7 @@ func run() -> void:
 		check(not player.test_move(Transform2D(0,center+Vector2(door,30)),Vector2(0,-60)),"Porta livre "+name)
 		check(player.test_move(Transform2D(0,center+Vector2(door,-31)),Vector2(0,-65)),"Limite do piso "+name)
 	check_workshop()
+	check_rain_and_market()
 	check_progression()
 	var farm: Farm = village.farm
 	for k: String in village.land.anchors:
@@ -89,7 +90,7 @@ func run() -> void:
 	for i in range(3):
 		farm.hands[1] = "Angu"
 		farm.act(1,"market")
-	check(farm.state.coins == 18 and farm.act(1,"market") != "" and farm.state.upgrade,"Banco restaurado")
+	check(farm.state.coins == 24 and farm.act(1,"market") != "" and farm.state.upgrade,"Banco restaurado")
 	farm.act(1,"hen")
 	farm.act(1,"mix")
 	farm.hands[2] = "Fubá"
@@ -183,3 +184,29 @@ func check_workshop() -> void:
 	farm.tick(25)
 	farm.act(1,"plot0")
 	check(farm.state.storage.size() == 2,"Colheita extra no depósito")
+
+func check_rain_and_market() -> void:
+	var farm := Farm.new()
+	farm.state.plots[0].stage = 2
+	farm.tick(180)
+	check(farm.state.plots[0].stage == 2, "Sementes aguardam água no tempo seco")
+	var single_tick := Farm.new()
+	single_tick.state = farm.state.duplicate(true)
+	farm.tick(1)
+	check(farm.state.plots[0].stage == 3 and farm.state.water == 2, "Chuva irriga sem consumir água")
+	farm.tick(60)
+	single_tick.tick(61)
+	check(farm.state.plots == single_tick.state.plots and farm.state.plots[0].stage == 4, "Chuva e crescimento independem do tamanho do tick")
+	farm.state.quota = 2
+	for id in [1,2]:
+		farm.hands[id] = "Angu"
+		var payout := farm.market_payout("Angu")
+		var before: int = farm.state.coins
+		check(str(payout) in farm.prompt(id,"market"), "Preço indicado na feira")
+		var receipt := farm.act(id,"market")
+		check(("parcial" in receipt) == (id == 1), "Comprovante de entrega parcial ou completa")
+		check(farm.state.coins == before + payout, "Feira paga o preço anunciado")
+	check(farm.state.coins == 17 and farm.state.order == 1, "Bônus único na última entrega")
+	check(farm.sale_price("Beiju") > farm.sale_price("Arroz branco") and farm.sale_price("Milho") == 0, "Valor artesanal e ingredientes crus")
+	farm.hands[1] = "Beiju"
+	check("Venda na feira" in farm.act(1,"market") and farm.state.delivered == 0, "Venda avulsa preserva encomenda")

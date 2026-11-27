@@ -1,5 +1,20 @@
 extends RefCounted
 
+const Weather = preload("res://systems/weather.gd")
+const ORDER_BONUS := 3
+# Receitas com mais etapas ou misturas rendem mais na feira.
+const ARTISAN_PRICES := {"Angu":7, "Pamonha":7, "Creme de manga":8, "Broa de milho":10,
+	"Baião da vila":12, "Farinha de mandioca":13, "Beiju":13}
+
+func sale_price(item: String) -> int:
+	return ARTISAN_PRICES.get(item, 5 if item in MEALS else 0)
+
+func market_payout(item: String) -> int:
+	var price := sale_price(item)
+	if item == ORDERS[int(state.order)] and state.delivered + 1 >= state.quota:
+		price += ORDER_BONUS
+	return price
+
 const CROPS := ["Milho", "Mandioca", "Arroz", "Feijão"]
 const GROW := [14, 20, 12, 16]
 const MEALS := ["Angu", "Milho cozido", "Mandioca cozida", "Feijão de panela", "Arroz branco", "Doce de manga", "Ovos mexidos", "Leite quente", "Broa de milho", "Pamonha", "Beiju", "Baião da vila", "Creme de manga"]
@@ -60,8 +75,12 @@ func _init() -> void:
 		state.plots.append({"stage":0 if i<4 else (4 if i==4 else 3), "crop":i % CROPS.size(), "ready":0.0 if i<5 else float(4*i)})
 
 func tick(delta: float) -> void:
+	var rain_at: float = state.time + Weather.seconds_until_rain(state.time)
 	state.time += delta
 	for p: Dictionary in state.plots:
+		if p.stage == 2 and state.time >= rain_at:
+			p.stage = 3
+			p.ready = rain_at + GROW[int(p.crop)]
 		if p.stage == 3 and state.time >= p.ready:
 			p.stage = 4
 
@@ -165,8 +184,9 @@ func act(id: int, target: String, tool: int = 0) -> String:
 				state.fruit = state.time + 35
 				return "Manga colhida."
 		"market":
-			if MEALS.has(hand) or hand == "Farinha de mandioca":
-				state.coins += 5
+			var payout := market_payout(hand)
+			if payout > 0:
+				state.coins += payout
 				state.sales += 1
 				hands[id] = ""
 				if hand == ORDERS[int(state.order)]:
@@ -175,12 +195,12 @@ func act(id: int, target: String, tool: int = 0) -> String:
 						state.order = (int(state.order)+1)%ORDERS.size()
 						state.delivered = 0
 						state.quota = clampi(ceili(participants/2.0),1,3)
-						state.coins += 3
 						if state.order == 0:
 							state.feasts += 1
-							return "Festa da colheita! A vila se reúne na feira."
-						return "Encomenda completa · +8 moedas"
-				return "Venda na feira · +5 moedas"
+							return "Festa da colheita! Encomenda completa · +%d moedas" % payout
+						return "Encomenda completa · +%d moedas" % payout
+					return "Entrega parcial · %d/%d · +%d moedas" % [state.delivered,state.quota,payout]
+				return "Venda na feira · +%d moedas" % payout
 			if hand.is_empty() and state.coins >= 15 and not state.upgrade:
 				state.coins -= 15
 				state.upgrade = true
@@ -219,6 +239,8 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
 	if target.begins_with("plot"):
 		var p: Dictionary = state.plots[target.trim_prefix("plot").to_int()]
+		if p.stage == 2 and Weather.seconds_until_rain(state.time) <= 15:
+			return "Regar ou aguardar a chuva" if state.water > 0 else "Aguarde a chuva ou busque água"
 		if p.stage == 2 and state.water == 0: return "Busque água no poço"
 		return ["Preparar a terra", "Plantar " + CROPS[int(p.crop)].to_lower(), "Regar o canteiro", "Cultivo em crescimento", "Colher " + CROPS[int(p.crop)].to_lower()][int(p.stage)]
 	if recipes.has(target):
@@ -246,7 +268,13 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 				return "Retirar " + str(state.tray.back()) if not state.tray.is_empty() else "Mesa compartilhada vazia"
 			return "Mesa compartilhada cheia" if state.tray.size() >= TRAY_CAPACITY else "Colocar " + hand
 		"storage": return "Guardar " + hand if hand != "" else "Depósito · %d itens" % state.storage.size()
-		"market": return "Restaurar banco · 15 moedas" if hand == "" and not state.upgrade else "Entregar prato na feira"
+		"market":
+			if hand == "":
+				return "Restaurar banco · 15 moedas" if not state.upgrade else "Feira · traga um prato para vender"
+			var payout := market_payout(hand)
+			if payout == 0: return "A feira compra pratos e farinha"
+			var action := "Entregar" if hand == ORDERS[int(state.order)] else "Vender"
+			return "%s %s · %d moedas" % [action, hand, payout]
 	return ""
 
 func required_tool(target: String) -> int:
