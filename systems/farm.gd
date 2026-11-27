@@ -42,6 +42,7 @@ const ORDERS := ["Angu","Pamonha","Baião da vila","Broa de milho","Doce de mang
 var participants := 1
 const BLENDS := {"Arroz|Pequi":"Arroz cru com pequi","Acerola|Leite":"Leite com acerola","Arroz branco|Feijão de panela":"Arroz e feijão", "Fubá|Ovos":"Massa de broa", "Leite|Manga":"Leite com manga"}
 const ICON := {
+ "Adubo":"soil",
  "Pequi":"pequi_fruit","Limão":"lime_fruit","Acerola":"acerola_fruit",
  "Arroz cru com pequi":"pequi_rice","Arroz com pequi":"pequi_rice","Sumo de limão":"lime_drink",
  "Suco de acerola":"acerola_fruit","Geleia de acerola":"acerola_jam","Leite com acerola":"food_16","Creme de acerola":"food_29",
@@ -87,15 +88,56 @@ func tend_row(index: int, stage: int) -> void:
 	for i in range(index,mini(index+reach,(index/4+1)*4)):
 		if state.plots[i].stage == stage: state.plots[i].stage = stage+1
 
+const LAND_PRICE := 35
+const STOCK_PRICE := {"farm_cat":5,"farm_hen":8,"farm_pig":12}
+const STOCK_NAME := {"farm_cat":"gato","farm_hen":"galinha","farm_pig":"porco"}
+const STALL_NAMES := {"market":"Dona Dica · cozinha", "fruit_stall":"Bento · frutas","grain_stall":"Luzia · roça","dairy_stall":"Zeca · ovos e leite"}
+const OFFERS := {"fruit_stall":{"Manga":3,"Pequi":4,"Limão":3,"Acerola":3},
+	"grain_stall":{"Milho":2,"Arroz":2,"Feijão":3,"Mandioca":3,"Fubá":4},
+	"dairy_stall":{"Ovos":4,"Leite":4}}
+
+func homestead_action(id: int, target: String) -> String:
+	if target == "homestead":
+		if state.land or state.coins < LAND_PRICE: return ""
+		state.coins -= LAND_PRICE
+		state.land = true
+		return "Sítio adquirido · quatro canteiros liberados!"
+	if not state.land: return ""
+	if not state.stock.has(target):
+		if state.coins < STOCK_PRICE[target]: return ""
+		state.coins -= STOCK_PRICE[target]
+		state.stock[target] = 0.0
+		return "Chegou ao sítio: %s!" % STOCK_NAME[target]
+	if state.time < state.stock[target]: return ""
+	var hand: String = hands.get(id,"")
+	match target:
+		"farm_cat":
+			state.effort.erase(id)
+		"farm_hen":
+			if hand != "Milho": return ""
+			hands[id] = "Ovos"
+		"farm_pig":
+			if hand not in CROPS: return ""
+			hands[id] = "Adubo"
+	state.stock[target] = state.time + 35.0
+	return {"farm_cat":"Carinho no gato · disposição recuperada.","farm_hen":"Galinha alimentada · ovos no cesto.","farm_pig":"Chiqueiro cuidado · adubo no cesto."}[target]
+
+func homestead_prompt(id: int, target: String) -> String:
+	if target == "homestead": return "Sítio da vila · quatro canteiros" if state.land else "Comprar sítio · %d/%d moedas" % [state.coins,LAND_PRICE]
+	if not state.land: return "Compre o sítio na placa"
+	if not state.stock.has(target): return "Trazer %s · %d/%d moedas" % [STOCK_NAME[target],state.coins,STOCK_PRICE[target]]
+	if state.time < state.stock[target]: return "%s descansando · %d s" % [str(STOCK_NAME[target]).capitalize(),ceili(state.stock[target]-state.time)]
+	return {"farm_cat":"Acariciar o gato","farm_hen":"Dar milho à galinha e recolher ovos","farm_pig":"Dar uma colheita ao porco e recolher adubo"}[target]
+
 const TRAY_CAPACITY := 4
 var recipes: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/recipes.json"))
 var state: Dictionary
 var hands: Dictionary = {}
 
 func _init() -> void:
-	state = {"version":4, "fallen":{"pequi_drop":0.0,"lime_drop":0.0,"acerola_drop":0.0}, "effort":{}, "levels":[1,1,1,1], "water":2, "tray":[], "served_item":"", "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
-	for i in range(8):
-		state.plots.append({"stage":0 if i<4 else (4 if i==4 else 3), "crop":i % CROPS.size(), "ready":0.0 if i<5 else float(4*i)})
+	state = {"version":5, "land":false,"stock":{}, "fallen":{"pequi_drop":0.0,"lime_drop":0.0,"acerola_drop":0.0}, "effort":{}, "levels":[1,1,1,1], "water":2, "tray":[], "served_item":"", "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
+	for i in range(12):
+		state.plots.append({"stage":0 if i<4 or i>=8 else (4 if i==4 else 3), "crop":i % CROPS.size(), "ready":0.0 if i<5 else float(4*i)})
 
 func tick(delta: float) -> void:
 	var rain_at: float = state.time + Weather.seconds_until_rain(state.time)
@@ -119,6 +161,14 @@ func release(id: int) -> void:
 
 func act(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
+	if target == "homestead" or STOCK_PRICE.has(target): return homestead_action(id,target)
+	if OFFERS.has(target):
+		if not OFFERS[target].has(hand): return ""
+		var price: int = OFFERS[target][hand]
+		state.coins += price
+		state.sales += 1
+		hands[id] = ""
+		return "%s vendido · +%d moedas" % [hand,price]
 	if FRUIT_SPOTS.has(target):
 		if hand != "" or state.time < state.fallen[target]: return ""
 		hands[id] = FRUIT_SPOTS[target]
@@ -133,8 +183,12 @@ func act(id: int, target: String, tool: int = 0) -> String:
 		return "Pajé · Seja bem-vindo. Se sentir mal-estar na lida, venha descansar aqui."
 	if target.begins_with("plot"):
 		var index := target.trim_prefix("plot").to_int()
-		if index < 0 or index >= state.plots.size(): return ""
+		if index < 0 or index >= state.plots.size() or (index >= 8 and not state.land): return ""
 		var p: Dictionary = state.plots[index]
+		if hand == "Adubo" and p.stage == 3:
+			p.stage = 4
+			hands[id] = ""
+			return "Terra adubada · colheita pronta."
 		match int(p.stage):
 			0: tend_row(index,0); return "Terra preparada."
 			1: tend_row(index,1); return "Sementes de %s na terra." % CROPS[int(p.crop)].to_lower()
@@ -282,13 +336,20 @@ func act(id: int, target: String, tool: int = 0) -> String:
 
 func prompt(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
+	if target == "homestead" or STOCK_PRICE.has(target): return homestead_prompt(id,target)
+	if OFFERS.has(target):
+		if OFFERS[target].has(hand): return "%s · vender %s por %d" % [STALL_NAMES[target],hand,OFFERS[target][hand]]
+		return "%s · compra %s" % [STALL_NAMES[target],", ".join(OFFERS[target].keys())]
 	if FRUIT_SPOTS.has(target):
 		if state.time < state.fallen[target]: return "Aguardando outro fruto cair"
 		return "Esvazie o cesto para recolher" if hand != "" else "Recolher %s do chão" % str(FRUIT_SPOTS[target]).to_lower()
 	if NEIGHBORS.has(target): return {"gardener":"Conversar com a horticultora","weaver":"Conversar com o artesão","cook":"Conversar com a cozinheira"}[target]
 	if target == "healer": return "Receber cuidados do pajé" if unwell(id) else "Conversar com o pajé"
 	if target.begins_with("plot"):
-		var p: Dictionary = state.plots[target.trim_prefix("plot").to_int()]
+		var index := target.trim_prefix("plot").to_int()
+		if index >= 8 and not state.land: return "Terreno à venda · consulte a placa"
+		var p: Dictionary = state.plots[index]
+		if hand == "Adubo" and p.stage == 3: return "Adubar para antecipar a colheita"
 		if p.stage == 2 and Weather.seconds_until_rain(state.time) <= 15:
 			return "Regar ou aguardar a chuva" if state.water > 0 else "Aguarde a chuva ou busque água"
 		if p.stage == 2 and state.water == 0: return "Busque água no poço"
@@ -321,7 +382,7 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 		"storage": return "Guardar " + hand if hand != "" else "Depósito · %d itens" % state.storage.size()
 		"market":
 			if hand == "":
-				return "Restaurar banco · 15 moedas" if not state.upgrade else "Feira · traga um prato para vender"
+				return "Restaurar banco · 15 moedas" if not state.upgrade else "Dona Dica · pratos e farinha"
 			var payout := market_payout(hand)
 			if payout == 0: return "A feira compra pratos e farinha"
 			var action := "Entregar" if hand == ORDERS[int(state.order)] else "Vender"

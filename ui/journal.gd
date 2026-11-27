@@ -495,7 +495,7 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 		task_detail.text = "Água · %d/%d" % [s.water,farm.water_capacity()]
 	task_detail.visible = task_detail.text != ""
 	if Time.get_ticks_msec() > message_until: news.text = ""
-	note.text = "WASD ou setas para andar · Shift para correr\nRoda para trocar ferramenta · Ctrl + roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nA leste da feira ficam o pomar e a aldeia."
+	note.text = "WASD ou setas para andar · Shift para correr\nRoda para trocar ferramenta · Ctrl + roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nAo sul ficam a feira e o sítio à venda. O pomar e a aldeia ficam a leste."
 	book.text = "Receitas descobertas: %s\nRefeições servidas: %d   ·   Entregas: %d   ·   Idas à escola: %d" % [", ".join(s.book) if not s.book.is_empty() else "—",s.served,s.sales,s.trips]
 
 func net_status(message: String, in_session: bool) -> void:

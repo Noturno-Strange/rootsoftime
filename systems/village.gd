@@ -88,7 +88,7 @@ func _ready() -> void:
 	camera.limit_left = 0
 	camera.limit_top = 0
 	camera.limit_right = int(Layout.WORLD_SIZE.x)
-	camera.limit_bottom = 1024
+	camera.limit_bottom = int(Layout.WORLD_SIZE.y)
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8
 	camera.zoom = Vector2.ONE * 1.32
@@ -350,12 +350,20 @@ func perform(id: int, key: String, tool: int = 0) -> bool:
 			if id == 1: hud.status("Espere as crianças alcançarem a entrada.")
 			return false
 	var text := farm.act(id,key,tool)
-	if text.is_empty(): return false
+	if text.is_empty():
+		var reason := farm.prompt(id,key,tool)
+		if id == multiplayer.get_unique_id(): report_blocked(reason)
+		elif online: report_blocked.rpc_id(id,reason)
+		return false
 	dirty = true
 	var kind := "grain" if key.begins_with("plot") else "wood"
 	if key == "well" or text.begins_with("Canteiro regado"): kind = "water"
 	if key in ["table","market","stove"]: kind = "meal"
-	if key in ["market","warehouse"]: kind = "coin"
+	if key in ["market","warehouse"] or Farm.OFFERS.has(key): kind = "coin"
+	if key == "homestead": kind = "unlock"
+	if Farm.STOCK_PRICE.has(key): kind = "care"
+	if key in ["home","school","teacher","healer"] or Farm.NEIGHBORS.has(key): kind = "voice"
+	if Farm.FRUIT_SPOTS.has(key) or text.begins_with("Colheita"): kind = "harvest"
 	if key in ["mill","grater","sieve"]: kind = "mill"
 	feedback(id,key,text,kind)
 	if online: feedback.rpc(id,key,text,kind)
@@ -363,9 +371,17 @@ func perform(id: int, key: String, tool: int = 0) -> bool:
 	return true
 
 @rpc("authority","call_remote","reliable")
+func report_blocked(reason: String) -> void:
+	hud.status(reason)
+	if actors.has(multiplayer.get_unique_id()):
+		sound.play(self,actors[multiplayer.get_unique_id()].position,"wood",-22)
+
+@rpc("authority","call_remote","reliable")
 func feedback(id: int, key: String, message: String, kind: String) -> void:
 	if multiplayer.get_unique_id() == id: hud.status(message)
-	if key == "teacher" or key == "healer" or Farm.NEIGHBORS.has(key): return
+	if kind == "voice":
+		sound.play(self,land.anchors[key],kind,-16)
+		return
 	if actors.has(id):
 		var worker: Actor = actors[id]
 		worker.activity = "pour" if kind == "water" else ("hoe" if message == "Terra preparada." else "pick")
@@ -391,7 +407,11 @@ func feedback(id: int, key: String, message: String, kind: String) -> void:
 	dust.initial_velocity_max = 65
 	dust.scale_amount_min = 1.5
 	dust.scale_amount_max = 3.0
-	dust.color = Color("#97cfdf") if kind == "water" else Color("#e7c276")
+	dust.color = {"coin":Color("#ffd34f"),"unlock":Color("#ffed94"),"harvest":Color("#a4ce66"),"care":Color("#ffbbaa"),"water":Color("#97cfdf"),"meal":Color("#fff0cb")}.get(kind,Color("#e7c276"))
+	if kind in ["unlock","coin","care","harvest"]:
+		dust.gravity = Vector2(0,-28)
+		dust.amount = 18 if kind == "unlock" else 9
+		dust.lifetime = 0.8
 	add_child(dust)
 	dust.finished.connect(dust.queue_free)
 	dust.emitting = true
@@ -523,6 +543,7 @@ func _physics_process(dt: float) -> void:
 	weather.position = camera.position-Vector2(0,200)
 	weather.emitting = weather.raining(farm.state.time)
 	land.update_fruits(farm)
+	land.update_fair(farm,dt,viewer,sound)
 	for kid in kids:
 		kid.eating = farm.state.family == "eating"
 	land.reveal_rooms(viewer,dt)

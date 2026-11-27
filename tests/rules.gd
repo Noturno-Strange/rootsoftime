@@ -81,6 +81,7 @@ func run() -> void:
 	grove.act(1,"healer")
 	check(not grove.unwell(1),"Recuperação da dor muscular")
 	check_workshop()
+	check_south()
 	check_rain_and_market()
 	check_progression()
 	var farm: Farm = village.farm
@@ -134,6 +135,7 @@ func run() -> void:
 	farm.hands[2] = "Fubá"
 	check(farm.act(2,"mix") != "" and farm.hands[2] == "Massa de broa","Mistura compartilhada")
 	var old_save := farm.state.duplicate(true)
+	old_save.plots.resize(8)
 	old_save.version = 1
 	old_save.erase("served_item")
 	old_save.erase("tray")
@@ -252,3 +254,29 @@ func check_rain_and_market() -> void:
 	check(farm.sale_price("Beiju") > farm.sale_price("Arroz branco") and farm.sale_price("Milho") == 0, "Valor artesanal e ingredientes crus")
 	farm.hands[1] = "Beiju"
 	check("Venda na feira" in farm.act(1,"market") and farm.state.delivered == 0, "Venda avulsa preserva encomenda")
+
+func check_south() -> void:
+	var farm := Farm.new()
+	check(farm.act(1,"homestead").is_empty() and farm.act(2,"plot8").is_empty(),"Sítio fechado sem compra")
+	farm.state.coins = 60
+	check(not farm.act(1,"homestead").is_empty() and farm.act(2,"homestead").is_empty() and farm.state.coins == 25,"Compra única compartilhada")
+	check(not farm.act(2,"plot8").is_empty(),"Canteiro novo acessível")
+	for animal: String in Farm.STOCK_PRICE:
+		check(not farm.act(1,animal).is_empty(),"Criação de "+animal)
+	check(farm.state.coins == 0,"Preço de terreno e animais")
+	farm.hands[2] = "Milho"
+	farm.act(2,"farm_hen")
+	check(farm.hands[2] == "Ovos" and farm.act(1,"farm_hen").is_empty(),"Milho por ovos com descanso")
+	check(farm.act(2,"fruit_stall").is_empty() and not farm.act(2,"dairy_stall").is_empty() and farm.state.coins == 4,"Comprador especializado em laticínios e ovos")
+	farm.hands[2] = "Feijão"
+	farm.act(2,"farm_pig")
+	farm.state.plots[8].stage = 3
+	check(farm.hands[2] == "Adubo" and not farm.act(2,"plot8").is_empty() and farm.state.plots[8].stage == 4,"Adubo do chiqueiro na plantação nova")
+	farm.state.effort[2] = Farm.HARVEST_LIMIT
+	farm.act(2,"farm_cat")
+	check(not farm.unwell(2),"Cuidado do gato recupera disposição")
+	check(Save.valid(farm.state.duplicate(true),Farm.new().state),"Criação e terreno persistem")
+	for stall: String in Farm.OFFERS:
+		for item: String in Farm.OFFERS[stall]:
+			farm.hands[1] = item
+			check(not farm.act(1,stall).is_empty() and farm.hands[1] == "","Vender "+item)

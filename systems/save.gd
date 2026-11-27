@@ -16,7 +16,15 @@ static func valid(s: Variant, defaults: Dictionary) -> bool:
 		s.version = 4
 		s.fallen = defaults.fallen.duplicate()
 		s.effort = {}
-	if s.get("version") != 4: return false
+	if s.get("version") == 4:
+		if not s.get("plots") is Array or s.plots.size() != 8: return false
+		for i in range(8,12): s.plots.append({"stage":0,"crop":i%4,"ready":0.0})
+		s.land = false
+		s.stock = {}
+		s.version = 5
+	if s.get("version") != 5 or not s.get("stock") is Dictionary: return false
+	for animal: Variant in s.stock:
+		if not preload("res://systems/farm.gd").STOCK_PRICE.has(animal) or not s.stock[animal] is float or not is_finite(s.stock[animal]): return false
 	if not s.get("fallen") is Dictionary or not s.get("effort") is Dictionary: return false
 	for spot: String in defaults.fallen:
 		if not s.fallen.get(spot) is float or not is_finite(s.fallen[spot]): return false

@@ -17,3 +17,9 @@ Uma venda simples rende 5 moedas. Angu e pamonha rendem 7, creme de manga rende 
 A trilha a leste da feira leva a um pequizeiro, um limoeiro e uma aceroleira. Cada árvore mantém um ponto de queda compartilhado. Depois da coleta, outro fruto cai após 32, 24 ou 20 segundos, respectivamente. O livro apresenta as etapas para fazer arroz com pequi, sumo de limão, suco de acerola, geleia de acerola e creme de acerola.
 
 Na aldeia fictícia, a horticultora orienta a coleta, o artesão fala do transporte e a cozinheira ensina a combinação de arroz com pequi. A décima colheita desde o último cuidado determina o efeito. No pomar, o mal-estar reduz a velocidade de 155 para 120 unidades por segundo. Nos canteiros, a dor muscular aumenta o intervalo mínimo entre ações de cultivo para 0,85 segundo. O pajé resolve ambos ao conversar. O anfitrião controla cada coleta e o estado individual dos jogadores. A disposição do anfitrião é salva. O estado de um convidado termina ao sair da sessão.
+
+### Feira da baixada e sítio
+
+Ao sul da vila, Dona Dica compra pratos e farinha e recebe as encomendas. Bento compra frutas, Luzia compra grãos, raízes e fubá, e Zeca compra ovos e leite. Cinco visitantes percorrem as barracas e levam suas compras. Suas compras são ambientação e não movimentam as moedas da fazenda.
+
+A placa a oeste da feira vende o sítio por 35 moedas compartilhadas e libera quatro canteiros. Cada criação é adquirida uma vez, no cesto correspondente. O gato custa 5 moedas e o carinho recupera a disposição. A galinha custa 8 e troca milho por ovos. O porco custa 12 e, ao receber uma colheita, permite recolher adubo do chiqueiro. Use o adubo no canteiro já regado para antecipar a colheita. Cada animal descansa por 35 segundos após o cuidado.

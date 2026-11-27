@@ -4,7 +4,7 @@ const SITES := {
 	"well":[Vector2(867,616),"well",115,34], "warehouse":[Vector2(1300,800),"warehouse",187,95],
 	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
 	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(555,462),"stove",100,54],
-	"table":[Vector2(377,529),"table",76,44], "market":[Vector2(1014,710),"market",155,88],
+	"table":[Vector2(377,529),"table",76,44], "market":[Vector2(1150,1245),"food_booth",158,69],
 	"tray":[Vector2(559,562),"shared_table",76,51], "storage":[Vector2(698,534),"chest",56,30], "press":[Vector2(887,358),"press",88,28],
 	"wash":[Vector2(558,363),"wash",65,29], "grater":[Vector2(648,382),"grater",66,28],
 	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(214,461),"clay_oven",106,45],
@@ -15,10 +15,15 @@ const SITES := {
 const SPAWN := Vector2(457,674)
 const CHILD_HOME := Vector2(400,548)
 const CHILD_SCHOOL := Vector2(1245,336)
-const WORLD_SIZE := Vector2(2560,1024)
-const BOUNDS := Rect2(90,175,2390,755)
+const WORLD_SIZE := Vector2(2560,1664)
+const BOUNDS := Rect2(90,175,2390,1420)
 const Farm = preload("res://systems/farm.gd")
 var dropped: Dictionary = {}
+const BOOTHS := ["market","fruit_stall","grain_stall","dairy_stall"]
+var shoppers: Array[Node2D] = []
+var last_purchase: Array[int] = []
+var animals: Dictionary = {}
+var deed_label := Label.new()
 var teacher: Node2D
 var roofs: Dictionary = {}
 var scenery_reservations: Array[Rect2] = []
@@ -124,6 +129,12 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	clearing.position.x = 1408
 	clearing.scale = Vector2(1152,1024)/clearing.texture.get_size()
 	root.add_child(clearing)
+	var south := Sprite2D.new()
+	south.texture = preload("res://assets/baixada.webp")
+	south.centered = false
+	south.position.y = 896
+	south.scale = Vector2(2560,768)/south.texture.get_size()
+	root.add_child(south)
 	root.add_child(soil_layer)
 	var worked_ground := Sprite2D.new()
 	worked_ground.texture = preload("res://assets/garden_ground.webp")
@@ -159,8 +170,9 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		["geranium",Vector2(1060,726),32,10], ["rail",Vector2(1164,364),45,25],
 		["granite",Vector2(1318,564),48,19], ["geranium",Vector2(1380,804),38,12]]:
 		place(detail[0],detail[1],detail[2],detail[3])
-	for i in range(8):
+	for i in range(12):
 		var pos := Vector2(460 + (i%4)*90,646 + floori(i/4.0)*83)
+		if i >= 8: pos = Vector2(420+(i-8)*90,1358)
 		anchors["plot%d" % i] = pos
 		var base := Node2D.new()
 		base.position = pos
@@ -196,6 +208,71 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		plant_tree("banana",pos,113,12)
 
 	build_orchard()
+	build_fair()
+
+func build_fair() -> void:
+	for site: Array in [
+		["fruit_stall","fruit_booth",Vector2(1345,1198)], ["grain_stall","grain_booth",Vector2(1542,1206)],
+		["dairy_stall","dairy_booth",Vector2(1735,1248)], ["homestead","board",Vector2(805,1314)]]:
+		var key: String = site[0]
+		var signpost := key == "homestead"
+		visuals[key] = place(site[1],site[2],63 if signpost else 158,22 if signpost else 69)
+		anchors[key] = site[2]+Vector2(0,18)
+	deed_label.position = Vector2(-32,-56)
+	deed_label.size = Vector2(64,32)
+	deed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	deed_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	deed_label.add_theme_font_size_override("font_size",10)
+	deed_label.add_theme_color_override("font_color",Color("#ffebbb"))
+	visuals.homestead.add_child(deed_label)
+	place("coop",Vector2(592,1482),92,38)
+	for site: Array in [["farm_cat",Vector2(785,1460),33],["farm_hen",Vector2(627,1510),36],["farm_pig",Vector2(413,1502),51]]:
+		var key: String = site[0]
+		animals[key] = place(key,site[1],site[2])
+		anchors[key] = site[1]+Vector2(0,12)
+		place("basket",site[1]+Vector2(-24,0),20)
+	for x in range(362,855,68): place("rail",Vector2(x,1562),42,25)
+	for x in [1030,1840]: place("geranium",Vector2(x,1260),38,10)
+	for i in 5:
+		var actor := preload("res://systems/actor.gd").new()
+		display.add_child(actor)
+		actor.setup(art)
+		actor.appearance = i%4
+		shoppers.append(actor)
+		last_purchase.append(-1)
+
+func update_fair(farm: RefCounted, dt: float, viewer: Vector2, sound: RefCounted) -> void:
+	for key: String in animals:
+		var animal: Node2D = animals[key]
+		animal.visible = farm.state.stock.has(key)
+		if animal.visible:
+			var elapsed: float = farm.state.time + float(Farm.STOCK_PRICE[key])
+			var pace := sin(elapsed*0.5)
+			var portrait := animal.get_child(1) as Sprite2D
+			portrait.flip_h = cos(elapsed*0.5) < 0.0
+			animal.position = anchors[key]-Vector2(0,12) + Vector2(8*pace,1.2*absf(sin(elapsed*3)))
+	for i in shoppers.size():
+		# Compartilhado pelo relógio da vila. Há tempo para chegar, comprar e sair pela frente.
+		var clock: float = farm.state.time+i*9.7
+		var leg := floori(clock/9.0)%6
+		var sequence := [0,1,2,3,2,1]
+		var start: Vector2 = anchors[BOOTHS[sequence[leg]]]
+		var end: Vector2 = anchors[BOOTHS[sequence[(leg+1)%6]]]
+		var phase := fmod(clock,9.0)
+		var t := clampf((phase-2.5)/6.5,0,1)
+		var offset := Vector2((i-2)*9,16+sin(t*PI)*(32+i*6))
+		var shopper = shoppers[i]
+		var pos := start.lerp(end,t)+offset
+		var motion := (pos-Vector2(shopper.position))/maxf(dt,0.001)
+		shopper.position = pos
+		var purchase := floori(clock/9.0)
+		if phase >= 1.1 and last_purchase[i] != purchase:
+			if last_purchase[i] >= 0 and phase < 1.6 and pos.distance_to(viewer) < 290:
+				sound.play(display,pos,"coin",-23)
+			last_purchase[i] = purchase
+		var items := ["Angu","Manga","Milho","Ovos"]
+		shopper.pose(motion.limit_length(70),dt,items[sequence[leg]] if phase>1.1 else "")
+
 
 func build_orchard() -> void:
 	for site: Array in [
@@ -248,6 +325,7 @@ func nearest(pos: Vector2) -> String:
 	return target
 
 func refresh(farm: RefCounted) -> void:
+	deed_label.text = "SÍTIO DA VILA" if farm.state.land else "VENDE-SE"
 	for i in range(plants.size()):
 		var p: Dictionary = farm.state.plots[i]
 		var stage := int(p.stage)
