@@ -22,7 +22,7 @@ var camera := Camera2D.new()
 var kids: Array[Actor] = []
 var routes := {}
 var deadlines := {}
-var play_points := [Vector2(520,585),Vector2(830,545),Vector2(1150,445),Vector2(1540,550),Vector2(1750,710)]
+var play_points := [Vector2(520,585),Vector2(830,545),Vector2(1150,445),Vector2(940,580),Vector2(740,820)]
 var tint := CanvasModulate.new()
 var paths := preload("res://systems/paths.gd").new()
 var target := ""
@@ -76,7 +76,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.limit_left = 0
 	camera.limit_top = 0
-	camera.limit_right = 2048
+	camera.limit_right = 1536
 	camera.limit_bottom = 1024
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8
@@ -458,7 +458,7 @@ func _physics_process(dt: float) -> void:
 	if foot_distance > 43:
 		foot_distance = 0
 		sound.play(self,viewer,"step",-14)
-	camera.position = viewer + Vector2(40,-95)
+	camera.position = viewer + Vector2(40,-155)
 	weather.position = camera.position-Vector2(0,200)
 	weather.emitting = weather.raining(farm.state.time)
 	for kid in kids:

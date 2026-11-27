@@ -20,10 +20,10 @@ func setup(atlas: RefCounted, little: bool = false) -> void:
 	collision_layer = 0
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = 7 if little else 9
+	circle.radius = 8 if little else 11
 	shape.shape = circle
 	add_child(shape)
-	figure = atlas.sprite("child" if little else "farmer", 49 if little else 68)
+	figure = atlas.sprite("child" if little else "farmer", 66 if little else 92)
 	add_child(figure)
 	cargo = atlas.sprite("basket",22)
 	cargo.visible = false
@@ -40,7 +40,7 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 	if child and eating: key = "eat"+str(int(Time.get_ticks_msec()/280.0)%4)
 	if not child and (moving or last_dir.y < -0.35):
 		key = ("back" if last_dir.y < -0.35 else "step") + str(int(step)%4 if moving else 1)
-	var height := 49.0 if child else 68.0
+	var height := 66.0 if child else 92.0
 	if female: key = "woman"+str(int(step)%4 if moving else 1)
 	if action_time > 0 and not child:
 		action_time = maxf(0,action_time-delta)
@@ -50,7 +50,7 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 	if child:
 		key = "kid%d%d" % [kid_index,int(step)%4 if moving else 1]
 		if eating and kid_index == 0: key = "eat"+str(int(Time.get_ticks_msec()/280.0)%4)
-		if eating and kid_index == 0: height = 38
+		if eating and kid_index == 0: height = 51
 	elif item != "" and action_time <= 0:
 		key = ("load_f" if female else "load_m")+str(int(step)%4 if moving else 1)
 	if facing_key != key:
@@ -62,6 +62,6 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 		held = item
 		cargo.visible = held != ""
 		if cargo.visible:
-			art.paint(cargo,preload("res://systems/farm.gd").ICON.get(item,"meal"),22)
+			art.paint(cargo,preload("res://systems/farm.gd").ICON.get(item,"meal"),29)
 	cargo.visible = item != "" and action_time <= 0
-	cargo.position = Vector2(-8 if figure.flip_h else 8,-39+figure.position.y)
+	cargo.position = Vector2(-11 if figure.flip_h else 11,-53+figure.position.y)

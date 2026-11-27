@@ -1,8 +1,8 @@
 extends RefCounted
 
 const SITES := {
-	"home":[Vector2(365,375),"home",233,126], "mill":[Vector2(765,330),"mill",205,104],
-	"school":[Vector2(1245,311),"school",218,145], "stove":[Vector2(515,484),"stove",98,48],
+	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
+	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(515,484),"stove",98,48],
 	"table":[Vector2(353,550),"table",76,60], "market":[Vector2(1014,710),"market",155,88],
 	"storage":[Vector2(685,489),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
 	"wash":[Vector2(565,358),"wash",54,28], "grater":[Vector2(643,375),"grater",55,27],
@@ -14,7 +14,7 @@ const SITES := {
 const SPAWN := Vector2(457,674)
 const CHILD_HOME := Vector2(400,548)
 const CHILD_SCHOOL := Vector2(1245,336)
-const BOUNDS := Rect2(90,175,1870,755)
+const BOUNDS := Rect2(90,175,1360,755)
 var roofs: Dictionary = {}
 var interiors: Dictionary = {}
 var anchors: Dictionary = {}
@@ -54,12 +54,12 @@ func building(key: String, d: Array) -> Node2D:
 	var center: Vector2 = d[0]
 	var width := float(d[3])*2
 	var inside := Node2D.new()
-	inside.position = center-Vector2(0,105)
+	inside.position = center-Vector2(0,135)
 	display.add_child(inside)
 	var room: Sprite2D = art.sprite("house_room" if key == "home" else "school_room",width*0.66)
-	room.position.y = 105
+	room.position.y = 135
 	inside.add_child(room)
-	for piece: Array in [[Vector2(0,-94),width/2,10],[Vector2(-width/2+6,0),6,94],[Vector2(width/2-6,0),6,94]]:
+	for piece: Array in [[Vector2(0,-119),width/2,10],[Vector2(-width/2+6,0),6,119],[Vector2(width/2-6,0),6,119]]:
 		var wall := Node2D.new()
 		wall.position = center + piece[0]
 		display.add_child(wall)
@@ -72,7 +72,7 @@ func building(key: String, d: Array) -> Node2D:
 func reveal_rooms(viewer: Vector2, delta: float) -> void:
 	for key: String in roofs:
 		var relative: Vector2 = viewer - SITES[key][0]
-		var inside := absf(relative.x) < float(SITES[key][3])-7 and relative.y < 12 and relative.y > -105
+		var inside := absf(relative.x) < float(SITES[key][3])-7 and relative.y < 12 and relative.y > -130
 		var roof: Node2D = roofs[key]
 		roof.modulate.a = move_toward(roof.modulate.a,0.0 if inside else 1.0,delta*5)
 		interiors[key].visible = roof.modulate.a < 0.999
@@ -82,7 +82,7 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	var ground := Sprite2D.new()
 	ground.texture = preload("res://assets/ground.webp")
 	ground.centered = false
-	ground.scale = Vector2(2048,1024)/ground.texture.get_size()
+	ground.scale = Vector2(1536,1024)/ground.texture.get_size()
 	root.add_child(ground)
 	display = Node2D.new()
 	display.y_sort_enabled = true
@@ -110,18 +110,15 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		plants.append(plant)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1942
-	for i in range(23):
+	for i in range(18):
 		var pos := Vector2(i*94+rng.randf_range(-22,22),rng.randf_range(142,206))
 		place("banana" if i%3==0 else "mango",pos,rng.randf_range(145,225),18)
-	for side in [70,1995]:
+	for side in [70,1478]:
 		for i in range(6):
 			place("mango" if i%2==0 else "banana",Vector2(side+rng.randf_range(-20,20),330+i*120),rng.randf_range(138,199),15)
-	for pos in [Vector2(230,455),Vector2(1113,370),Vector2(1090,833),Vector2(278,809),Vector2(1560,385),Vector2(1780,740),Vector2(1850,400)]:
+	for pos in [Vector2(230,455),Vector2(1113,370),Vector2(1090,833),Vector2(278,809)]:
 		place("banana",pos,113,12)
 
-	place("bench",Vector2(1650,480),44,42)
-	place("home",Vector2(1790,340),210,98)
-	place("mango",Vector2(1660,820),180,16)
 
 func nearest(pos: Vector2) -> String:
 	var best := 68.0
