@@ -139,7 +139,7 @@ func _ready() -> void:
 	spawn(1)
 	camera.position = Layout.SPAWN
 	camera.reset_smoothing()
-	hud.net_status("Individual · Cooperativo para até seis pessoas",false)
+	hud.net_status("Individual · Cooperativo para até %d pessoas" % MAX_PLAYERS,false)
 	hud.status("Horta comunitária · aproxime-se de um canteiro")
 	land.refresh(farm)
 
@@ -213,11 +213,13 @@ func authenticate(id: int, payload: PackedByteArray) -> void:
 func auth_failed(_id: int) -> void:
 	if joining: call_deferred("failed")
 
+const MAX_PLAYERS := 4
+
 func host_game() -> void:
 	if online or joining: return
 	room_secret = "RootsOfTime:1:" + hud.pin.text
 	var peer := ENetMultiplayerPeer.new()
-	if peer.create_server(PORT,5) != OK:
+	if peer.create_server(PORT,MAX_PLAYERS-1) != OK:
 		hud.net_status("Não foi possível abrir a porta UDP %d." % PORT,false)
 		return
 	multiplayer.multiplayer_peer = peer

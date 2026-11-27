@@ -6,7 +6,7 @@ trap 'rm -rf "$tmp"' EXIT
 export XDG_DATA_HOME="$tmp/data"
 godot --headless --editor --import
 godot --headless --script res://tests/rules.gd -- --test
-for total in 2 6; do
+for total in 2 4; do
   godot --headless --max-fps 60 --single-threaded-scene --script res://tests/network.gd -- --test host "$total" >"$tmp/host" 2>&1 &
   host=$!
   sleep 1

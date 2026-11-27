@@ -6,7 +6,7 @@ Desenvolver um jogo completo chamado **Roots of Time**, ambientado em uma pequen
 
 O jogo deverá utilizar gráficos 2D de alta definição, pintados à mão, sem pixel art, com perspectiva elevada em três quartos.
 
-Deverá ser possível jogar individualmente ou em multiplayer cooperativo com até seis jogadores.
+Deverá ser possível jogar individualmente ou em multiplayer cooperativo com até quatro jogadores.
 
 O diferencial será permitir que os jogadores produzam artesanalmente seus próprios alimentos, desde o cultivo dos ingredientes até a preparação das refeições, utilizando ferramentas, equipamentos e objetos presentes fisicamente no cenário.
 
@@ -1034,7 +1034,7 @@ A comunicação por voz poderá ser implementada posteriormente, sem comprometer
 
 Ajustar quantidades de encomendas e carga de trabalho conforme o número de participantes.
 
-Não obrigar o jogador individual a realizar o trabalho equivalente a seis pessoas.
+Não obrigar o jogador individual a realizar o trabalho equivalente a quatro pessoas.
 
 Não alterar quantidades de objetivos em andamento arbitrariamente quando alguém desconectar.
 
@@ -1467,7 +1467,7 @@ Validar:
 - Ações simultâneas.
 - Desempenho.
 
-Testar partidas com um, dois e seis jogadores.
+Testar partidas com um, dois e quatro jogadores.
 
 Verificar o comportamento quando dois jogadores tentarem utilizar a mesma estação, colher a mesma planta ou pegar o mesmo objeto.
 
@@ -1542,7 +1542,7 @@ Implementar encomendas, melhorias, economia, livro de receitas e festividades.
 
 ### Fase 9 — Multiplayer completo
 
-Validar seis jogadores, conexões externas, reconexões, concorrência e salvamentos compartilhados.
+Validar quatro jogadores, conexões externas, reconexões, concorrência e salvamentos compartilhados.
 
 ### Fase 10 — Polimento
 

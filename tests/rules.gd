@@ -160,6 +160,7 @@ func run() -> void:
 	for atlas: Texture2D in village.art.textures.values():
 		check(atlas.get_width() > 0 and atlas.get_height() > 0,"Região do atlas")
 	print("%d verificações, %d falhas." % [checks,failures])
+	await create_timer(0.7).timeout
 	village.queue_free()
 	await process_frame
 	await create_timer(0.25).timeout
@@ -200,7 +201,7 @@ func check_progression() -> void:
 	for dish: String in Farm.MEALS:
 		var kitchen := Farm.new()
 		check(make_product(kitchen,dish) and not kitchen.act(1,"table").is_empty(),"Preparar e servir "+dish)
-	for size in [1,2,6]:
+	for size in [1,2,4]:
 		var market := Farm.new()
 		market.participants = size
 		for dish: String in Farm.ORDERS:

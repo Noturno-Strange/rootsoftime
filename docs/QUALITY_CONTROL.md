@@ -3,8 +3,10 @@
 | Verificação | Resultado observado |
 | --- | --- |
 | Importação do projeto | Godot 4.7.2 estável |
-| Regras, alcance e atlas | 139 verificações automatizadas aprovadas |
-| Rede local | Um anfitrião e um convidado, depois um anfitrião e cinco convidados em processos separados |
+| Regras, alcance e atlas | 453 verificações automatizadas aprovadas |
+| Rede local | Um anfitrião e um convidado, depois um anfitrião e três convidados em processos separados |
+| Lotação | Quinta conexão recusada durante partida com quatro jogadores |
+| Feira cooperativa | Dois convidados vendem mangas enquanto o terceiro transporta milho. Os três recebem o saldo de seis moedas |
 | Concorrência | Uma única carga de milho para participantes que disputam o mesmo canteiro |
 | Desconexão e reentrada | Carga devolvida ao baú, senha incorreta recusada e estado do anfitrião recuperado na reentrada |
 | Salvamento | Rotação de backup e recuperação após substituir o arquivo principal por dados inválidos |

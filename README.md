@@ -1,6 +1,6 @@
 # Roots of Time
 
-Um jogo 2D de agricultura familiar e cozinha artesanal em uma vila brasileira. Prepare o canteiro, plante milho, leve a colheita ao moinho e retire o fubá para cozinhar angu. Sirva as quatro crianças à mesa antes de acompanhá-las até a escola. A mesma vila aceita de uma a seis pessoas.
+Um jogo 2D de agricultura familiar e cozinha artesanal em uma vila brasileira. Prepare o canteiro, plante milho, leve a colheita ao moinho e retire o fubá para cozinhar angu. Sirva as quatro crianças à mesa antes de acompanhá-las até a escola. A mesma vila aceita de uma a quatro pessoas.
 
 ![A horta e a vila durante uma partida](reports/vila.jpg)
 
@@ -61,3 +61,7 @@ Equipe o regador e use a tecla de interação no poço, a leste dos canteiros. C
 | Cesto | Uma porção da colheita | Uma extra no depósito | Duas extras no depósito |
 
 A enxada e as sementes atuam a partir do canteiro escolhido e seguem para a direita na mesma fileira, respeitando a etapa de cada canteiro.
+
+## Licença
+
+Roots of Time usa uma licença proprietária de uso. Os termos do jogo estão em [LICENSE](LICENSE). Os créditos da Godot e as licenças dos componentes integrados acompanham os executáveis.
