@@ -48,3 +48,16 @@ godot --headless --export-release Windows
 A exportação requer os modelos oficiais da versão 4.7.2 da Godot. Cada preset gera um executável x86-64 com dados incorporados. O teste visual requer sessão gráfica e atualiza as capturas em `reports/`.
 
 O escopo original e o estado desta edição estão em [design](docs/GAME_DESIGN.md), [roteiro](docs/ROADMAP.md) e [relatório de qualidade](docs/QUALITY_CONTROL.md).
+
+### Poço e armazém
+
+Equipe o regador e use a tecla de interação no poço, a leste dos canteiros. Cada rega consome uma carga da reserva compartilhada. No armazém, a sudeste da feira, equipe a ferramenta que deseja melhorar e interaja na entrada. As melhorias pertencem à vila e são salvas com a partida.
+
+| Ferramenta | Nível 1 | Nível 2 · 10 moedas | Nível 3 · 25 moedas |
+|---|---|---|---|
+| Enxada | Prepara um canteiro | Até dois na fileira | Até três na fileira |
+| Sementes | Planta em um canteiro preparado | Até dois na fileira | Até três na fileira |
+| Regador | Duas regas por carga completa | Quatro regas | Seis regas |
+| Cesto | Uma porção da colheita | Uma extra no depósito | Duas extras no depósito |
+
+A enxada e as sementes atuam a partir do canteiro escolhido e seguem para a direita na mesma fileira, respeitando a etapa de cada canteiro.

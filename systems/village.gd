@@ -321,14 +321,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func use_target() -> void:
 	if joining or target.is_empty(): return
-	if connected: request_action.rpc_id(1,target,farm.prompt(multiplayer.get_unique_id(),target),hud.tool_id)
+	if connected: request_action.rpc_id(1,target,farm.prompt(multiplayer.get_unique_id(),target,hud.tool_id),hud.tool_id)
 	else: perform(1,target,hud.tool_id)
 
 @rpc("any_peer","call_remote","reliable")
 func request_action(key: String, expected_action: String, tool: int) -> void:
 	if not multiplayer.is_server() or not land.anchors.has(key): return
 	var id := multiplayer.get_remote_sender_id()
-	if farm.prompt(id,key) == expected_action: perform(id,key,tool)
+	if tool < 0 or tool >= Farm.TOOL_NAMES.size(): return
+	if farm.prompt(id,key,tool) == expected_action: perform(id,key,tool)
 
 func perform(id: int, key: String, tool: int = 0) -> bool:
 	if not actors.has(id) or not land.anchors.has(key): return false
@@ -341,13 +342,13 @@ func perform(id: int, key: String, tool: int = 0) -> bool:
 		if kids.any(func(k: Actor) -> bool: return k.position.distance_to(land.anchors[key]) > 105):
 			if id == 1: hud.status("Espere as crianças alcançarem a entrada.")
 			return false
-	var text := farm.act(id,key)
+	var text := farm.act(id,key,tool)
 	if text.is_empty(): return false
 	dirty = true
 	var kind := "grain" if key.begins_with("plot") else "wood"
-	if text.begins_with("Canteiro regado"): kind = "water"
+	if key == "well" or text.begins_with("Canteiro regado"): kind = "water"
 	if key in ["table","market","stove"]: kind = "meal"
-	if key == "market": kind = "coin"
+	if key in ["market","warehouse"]: kind = "coin"
 	if key in ["mill","grater","sieve"]: kind = "mill"
 	feedback(id,key,text,kind)
 	if online: feedback.rpc(id,key,text,kind)
@@ -593,6 +594,9 @@ func update_goal(id: int) -> void:
 				goal = station
 				caption = "Retirar " + str(job.product)
 				break
+	if farm.state.water == 0 and hud.tool_id == 2:
+		goal = "well"
+		caption = "Abasteça o regador no poço"
 	if farm.state.escort == id:
 		goal = "home" if farm.state.family == "back" else "school"
 		caption = "Voltar para casa" if goal == "home" else "Levar à escola"

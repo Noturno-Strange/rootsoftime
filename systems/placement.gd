@@ -1,13 +1,14 @@
 extends RefCounted
 
 const SITES := {
+	"well":[Vector2(867,616),"well",115,34], "warehouse":[Vector2(1300,800),"warehouse",187,95],
 	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
-	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(515,484),"stove",98,48],
-	"table":[Vector2(353,550),"table",76,60], "market":[Vector2(1014,710),"market",155,88],
-	"tray":[Vector2(604,506),"shared_table",57,49], "storage":[Vector2(685,489),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
+	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(520,460),"stove",87,45],
+	"table":[Vector2(332,557),"table",66,44], "market":[Vector2(1014,710),"market",155,88],
+	"tray":[Vector2(609,541),"shared_table",57,49], "storage":[Vector2(735,540),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
 	"wash":[Vector2(565,358),"wash",54,28], "grater":[Vector2(643,375),"grater",55,27],
-	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(272,621),"stove",80,38],
-	"pan":[Vector2(428,476),"stove",66,32], "mix":[Vector2(334,671),"table",53,32],
+	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(240,468),"stove",103,52],
+	"pan":[Vector2(386,458),"stove",64,32], "mix":[Vector2(224,568),"table",54,35],
 	"hen":[Vector2(1024,522),"hen",34,8], "cow":[Vector2(1130,787),"cow",73,38],
 	"orchard":[Vector2(1200,586),"mango",196,24]
 }
@@ -49,7 +50,9 @@ func place(key: String, pos: Vector2, height: float, solid: float = 0) -> Node2D
 	shadow.color = Color(0.19,0.15,0.07,0.22)
 	node.add_child(shadow)
 	node.add_child(art.sprite(key,height))
-	if solid > 0: obstacle(node,solid,minf(65,height*0.25))
+	if solid > 0:
+		var depth := 116.0 if key == "warehouse" else minf(65,height*0.25)
+		obstacle(node,solid,depth)
 	return node
 
 func building(key: String, d: Array) -> Node2D:

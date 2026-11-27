@@ -8,7 +8,15 @@ static func valid(s: Variant, defaults: Dictionary) -> bool:
 		s.version = 2
 		s.tray = []
 		s.served_item = ""
-	if s.get("version") != 2: return false
+	if s.get("version") == 2:
+		s.version = 3
+		s.levels = [1,1,1,1]
+		s.water = 2
+	if s.get("version") != 3: return false
+	if not s.get("levels") is Array or s.levels.size() != 4: return false
+	for level: Variant in s.levels:
+		if not level is int or level < 1 or level > 3: return false
+	if not s.get("water") is int or s.water < 0 or s.water > 2*s.levels[2]: return false
 	for k: String in defaults:
 		if not s.has(k) or typeof(s[k]) != typeof(defaults[k]): return false
 	if s.order < 0 or s.order >= preload("res://systems/farm.gd").ORDERS.size(): return false

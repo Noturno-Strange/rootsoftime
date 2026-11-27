@@ -7,7 +7,7 @@ func _init() -> void:
 	for key: String in defs:
 		var d: Array = defs[key]
 		var texture := AtlasTexture.new()
-		texture.atlas = load("res://assets/%s.webp" % d[0])
+		texture.atlas = preload("res://assets/well_warehouse.png") if d[0] == "well_warehouse" else load("res://assets/%s.webp" % d[0])
 		texture.region = Rect2(d[1], d[2], d[3], d[4])
 		texture.filter_clip = true
 		textures[key] = texture

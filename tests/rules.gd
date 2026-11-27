@@ -42,6 +42,7 @@ func run() -> void:
 			check(player.test_move(start,Vector2(0,-48)),"Parede frontal "+name)
 		check(not player.test_move(Transform2D(0,center+Vector2(door,30)),Vector2(0,-60)),"Porta livre "+name)
 		check(player.test_move(Transform2D(0,center+Vector2(door,-31)),Vector2(0,-65)),"Limite do piso "+name)
+	check_workshop()
 	check_progression()
 	var farm: Farm = village.farm
 	for k: String in village.land.anchors:
@@ -127,6 +128,7 @@ func run() -> void:
 func make_product(farm: Farm, product: String) -> bool:
 	if product in Farm.CROPS:
 		var key := "plot%d" % Farm.CROPS.find(product)
+		if farm.state.water == 0: farm.act(1,"well",2)
 		for step in 3:
 			if farm.required_tool(key) != step or farm.act(1,key).is_empty(): return false
 		farm.tick(25)
@@ -162,3 +164,22 @@ func check_progression() -> void:
 				check(make_product(market,dish) and not market.act(1,"market").is_empty(),"Entregar "+dish)
 		check(market.state.feasts == 1,"Festa após ciclo de encomendas")
 		check(not market.act(1,"market").is_empty() and market.state.upgrade,"Restaurar banco com as vendas")
+
+func check_workshop() -> void:
+	var farm := Farm.new()
+	check(farm.act(1,"warehouse",0).is_empty(),"Melhoria exige moedas")
+	farm.state.coins = 140
+	for tool in 4:
+		for level in [2,3]:
+			check(not farm.act(1,"warehouse",tool).is_empty() and farm.state.levels[tool] == level,"Comprar nível %d" % level)
+		check(farm.act(1,"warehouse",tool).is_empty(),"Limite de três níveis")
+	check(farm.state.coins == 0,"Custo das melhorias")
+	farm.state.water = 0
+	farm.act(1,"plot0")
+	farm.act(1,"plot0")
+	check(farm.state.plots[2].stage == 2 and farm.act(1,"plot0").is_empty(),"Fileira plantada precisa de água")
+	check(not farm.act(2,"well",2).is_empty() and farm.state.water == 6,"Abastecimento no poço")
+	check(not farm.act(1,"plot0").is_empty() and farm.state.water == 5,"Consumo na rega")
+	farm.tick(25)
+	farm.act(1,"plot0")
+	check(farm.state.storage.size() == 2,"Colheita extra no depósito")

@@ -38,13 +38,24 @@ const ICON := {
  "Baião da vila": "food_28",
  "Creme de manga": "food_29"
 }
+const TOOL_NAMES := ["Enxada","Sementes","Regador","Cesto"]
+const UPGRADE_COST := [0,10,25]
+
+func water_capacity() -> int:
+	return 2*int(state.levels[2])
+
+func tend_row(index: int, stage: int) -> void:
+	var reach := int(state.levels[stage])
+	for i in range(index,mini(index+reach,(index/4+1)*4)):
+		if state.plots[i].stage == stage: state.plots[i].stage = stage+1
+
 const TRAY_CAPACITY := 4
 var recipes: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/recipes.json"))
 var state: Dictionary
 var hands: Dictionary = {}
 
 func _init() -> void:
-	state = {"version":2, "tray":[], "served_item":"", "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
+	state = {"version":3, "levels":[1,1,1,1], "water":2, "tray":[], "served_item":"", "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
 	for i in range(8):
 		state.plots.append({"stage":0 if i<4 else (4 if i==4 else 3), "crop":i % CROPS.size(), "ready":0.0 if i<5 else float(4*i)})
 
@@ -63,20 +74,26 @@ func release(id: int) -> void:
 		state.family = "home" if state.family == "out" else "school"
 		state.escort = 0
 
-func act(id: int, target: String) -> String:
+func act(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
 	if target.begins_with("plot"):
 		var index := target.trim_prefix("plot").to_int()
 		if index < 0 or index >= state.plots.size(): return ""
 		var p: Dictionary = state.plots[index]
 		match int(p.stage):
-			0: p.stage = 1; return "Terra preparada."
-			1: p.stage = 2; return "Sementes de %s na terra." % CROPS[int(p.crop)].to_lower()
-			2: p.stage = 3; p.ready = state.time + GROW[int(p.crop)]; return "Canteiro regado."
+			0: tend_row(index,0); return "Terra preparada."
+			1: tend_row(index,1); return "Sementes de %s na terra." % CROPS[int(p.crop)].to_lower()
+			2:
+				if state.water <= 0: return ""
+				state.water -= 1
+				p.stage = 3
+				p.ready = state.time + GROW[int(p.crop)]
+				return "Canteiro regado."
 			4:
 				if hand.is_empty():
 					hands[id] = CROPS[int(p.crop)]
 					p.stage = 0
+					for extra in range(1,int(state.levels[3])): state.storage.append(hands[id])
 					return "Colheita no cesto."
 		return ""
 	if recipes.has(target):
@@ -93,6 +110,17 @@ func act(id: int, target: String) -> String:
 		hands[id] = ""
 		return "Preparo iniciado."
 	match target:
+		"well":
+			if tool != 2 or state.water == water_capacity(): return ""
+			state.water = water_capacity()
+			return "Regador abastecido no poço."
+		"warehouse":
+			if tool < 0 or tool >= TOOL_NAMES.size(): return ""
+			var level := int(state.levels[tool])
+			if level >= 3 or state.coins < UPGRADE_COST[level]: return ""
+			state.coins -= UPGRADE_COST[level]
+			state.levels[tool] = level+1
+			return "%s · nível %d" % [TOOL_NAMES[tool],level+1]
 		"hen", "cow":
 			if hand.is_empty() and state.time >= state[target]:
 				hands[id] = "Ovos" if target == "hen" else "Leite"
@@ -187,10 +215,11 @@ func act(id: int, target: String) -> String:
 				return "Hora de voltar para casa."
 	return ""
 
-func prompt(id: int, target: String) -> String:
+func prompt(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
 	if target.begins_with("plot"):
 		var p: Dictionary = state.plots[target.trim_prefix("plot").to_int()]
+		if p.stage == 2 and state.water == 0: return "Busque água no poço"
 		return ["Preparar a terra", "Plantar " + CROPS[int(p.crop)].to_lower(), "Regar o canteiro", "Cultivo em crescimento", "Colher " + CROPS[int(p.crop)].to_lower()][int(p.stage)]
 	if recipes.has(target):
 		if state.jobs.has(target):
@@ -199,6 +228,12 @@ func prompt(id: int, target: String) -> String:
 		if recipes[target].has(hand): return "Preparar " + str(recipes[target][hand][0]).to_lower()
 		return {"mill":"Moinho · milho", "press":"Prensa · massa ralada", "stove":"Fogão a lenha", "wash":"Lavar mandioca", "grater":"Ralar milho ou mandioca lavada", "sieve":"Peneirar massa prensada", "pan":"Chapa · ovos, leite ou massa peneirada", "oven":"Forno · massa de milho ou de broa"}[target]
 	match target:
+		"well": return "Encher regador no poço · %d/%d" % [state.water,water_capacity()] if state.water < water_capacity() else "Regador cheio"
+		"warehouse":
+			var level := int(state.levels[clampi(tool,0,3)])
+			var name: String = TOOL_NAMES[clampi(tool,0,3)]
+			if level == 3: return "%s · nível máximo" % name
+			return "Melhorar %s · Nv. %d → %d · %d moedas" % [name,level,level+1,UPGRADE_COST[level]]
 		"hen": return "Recolher ovos"
 		"cow": return "Tirar leite"
 		"mix": return "Bancada · " + (str(state.bowl) if state.bowl != "" else "acrescentar ingrediente")
@@ -215,6 +250,7 @@ func prompt(id: int, target: String) -> String:
 	return ""
 
 func required_tool(target: String) -> int:
+	if target == "well": return 2
 	if not target.begins_with("plot"): return -1
 	var index := target.trim_prefix("plot").to_int()
 	if index < 0 or index >= state.plots.size(): return -1

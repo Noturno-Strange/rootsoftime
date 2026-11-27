@@ -10,6 +10,7 @@ const Farm = preload("res://systems/farm.gd")
 const TOOL_NAMES := ["Enxada","Sementes","Regador","Cesto"]
 const TOOL_ICONS := ["hoe","seedling","can","basket"]
 var tool_flash: Tween
+var levels_in_use := [1,1,1,1]
 var tool_id := 0
 var kit := ColorRect.new()
 var slots: Array[Button] = []
@@ -450,6 +451,8 @@ func status(message: String) -> void:
 
 func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	var s: Dictionary = farm.state
+	levels_in_use = s.levels
+	kit_button.text = "%s · Nv. %d   [B]" % [TOOL_NAMES[tool_id],levels_in_use[tool_id]]
 	var minutes := int(390+s.time*2.0)
 	date_label.text = "Dia %02d   ·   %02d:%02d" % [1+minutes/1440,(minutes/60)%24,minutes%60]
 	objective.text = "%s   ·   %d moedas" % ["Chuva de verão" if preload("res://systems/weather.gd").raining(s.time) else "Sol de verão",s.coins]
@@ -457,9 +460,9 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	var item: String = farm.hands.get(me,"")
 	carry_icon.texture = art.textures.get(farm.ICON.get(item,"meal") if item != "" else "basket")
 	carry.text = "Cesto  ·  " + (item if item != "" else "vazio")
-	hint.text = "["+key+"]  "+farm.prompt(me,target) if target != "" else ""
+	hint.text = "["+key+"]  "+farm.prompt(me,target,tool_id) if target != "" else ""
 	var needed: int = farm.required_tool(target)
-	if needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target)]
+	if needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target,tool_id)]
 	task_detail.text = ""
 	task_meter.max_value = s.quota
 	task_meter.value = s.delivered
@@ -472,6 +475,10 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 		var stage := int(plot.stage)
 		task_detail.text = ["Preparar a terra","Plantar as sementes","Regar","Crescendo","Pronto para colher"][stage]
 		if stage == 3: task_detail.text += " · %d s" % maxi(0,ceili(float(plot.ready)-float(s.time)))
+	if target == "warehouse":
+		task_detail.text = ["Prepara mais canteiros na fileira","Planta em mais canteiros na fileira","Aumenta a capacidade de água","Envia a colheita extra ao depósito"][tool_id]
+	elif tool_id == 2 and task_detail.text == "":
+		task_detail.text = "Água · %d/%d" % [s.water,farm.water_capacity()]
 	task_detail.visible = task_detail.text != ""
 	if Time.get_ticks_msec() > message_until: news.text = ""
 	note.text = "WASD ou setas para andar · Shift para correr\nRoda para trocar ferramenta · Ctrl + roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nSirva as crianças na mesa ou entregue o prato na feira."
@@ -528,7 +535,7 @@ func open_tools() -> void:
 	base.hide()
 	kit.show()
 	for i in slots.size():
-		slots[i].text = "%d   %s%s" % [i+1,TOOL_NAMES[i],"\nEm uso" if i == tool_id else ""]
+		slots[i].text = "%d   %s · Nv. %d%s" % [i+1,TOOL_NAMES[i],levels_in_use[i],"\nEm uso" if i == tool_id else ""]
 		slots[i].add_theme_stylebox_override("normal",box(Color("#3c5634") if i == tool_id else Color("#88482c"),Color("#bc9762"),12))
 	slots[tool_id].grab_focus()
 
