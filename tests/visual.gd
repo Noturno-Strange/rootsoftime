@@ -28,6 +28,14 @@ func run() -> void:
 	village.perform(1,"plot0")
 	await create_timer(0.35).timeout
 	if village.farm.hands.get(1) != "Milho": failed = true
+	farmer.position = village.land.anchors["tray"]
+	await create_timer(0.8).timeout
+	await snap("cesto")
+	if not village.perform(1,"tray"): failed = true
+	await create_timer(0.8).timeout
+	await snap("bandeja")
+	if not village.perform(1,"tray"): failed = true
+	await create_timer(0.8).timeout
 	farmer.position = village.land.anchors["mill"]
 	village.perform(1,"mill")
 	await create_timer(0.35).timeout

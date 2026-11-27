@@ -4,7 +4,7 @@ const SITES := {
 	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
 	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(515,484),"stove",98,48],
 	"table":[Vector2(353,550),"table",76,60], "market":[Vector2(1014,710),"market",155,88],
-	"storage":[Vector2(685,489),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
+	"tray":[Vector2(604,506),"bench",39,39], "storage":[Vector2(685,489),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
 	"wash":[Vector2(565,358),"wash",54,28], "grater":[Vector2(643,375),"grater",55,27],
 	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(272,621),"stove",80,38],
 	"pan":[Vector2(428,476),"stove",66,32], "mix":[Vector2(334,671),"table",53,32],

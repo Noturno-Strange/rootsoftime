@@ -79,7 +79,22 @@ func run() -> void:
 	farm.act(1,"mix")
 	farm.hands[2] = "Fubá"
 	check(farm.act(2,"mix") != "" and farm.hands[2] == "Massa de broa","Mistura compartilhada")
+	var old_save := farm.state.duplicate(true)
+	old_save.version = 1
+	old_save.erase("served_item")
+	old_save.erase("tray")
+	check(Save.valid(old_save,Farm.new().state) and old_save.tray.is_empty(),"Migração da bandeja")
+	for item: String in ["Milho","Manga","Ovos","Leite"]:
+		farm.hands[9] = item
+		check(farm.act(9,"tray") != "" and farm.hands[9] == "","Posicionar "+item)
+	farm.hands[9] = "Arroz"
+	check(farm.act(9,"tray") == "" and farm.hands[9] == "Arroz","Preservar carga com bandeja cheia")
+	check(farm.act(8,"tray") != "" and farm.hands[8] == "Leite" and farm.state.tray.size() == 3,"Retirada compartilhada")
+	for station: Dictionary in farm.recipes.values():
+		for ingredient: String in station:
+			check(farm.ICON.has(ingredient) and farm.ICON.has(station[ingredient][0]),"Ícones de "+ingredient)
 	check(Save.write(farm),"Gravação")
+	check(Save.recover(Farm.new().state).tray == farm.state.tray,"Posições preservadas no salvamento")
 	check(Save.write(farm),"Backup")
 	check(Save.recover(Farm.new().state).storage.has("Massa de broa"),"Carga preservada")
 	var file := FileAccess.open(Save.PATH,FileAccess.WRITE)

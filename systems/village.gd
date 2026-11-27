@@ -42,6 +42,7 @@ var joining := false
 var online := false
 var family_prev := ""
 var child_targets := PackedVector2Array()
+var tray_items: Array[Sprite2D] = []
 var indicators: Dictionary = {}
 var bench: Node2D
 var settings := ConfigFile.new()
@@ -57,6 +58,14 @@ func _ready() -> void:
 	session.peer_authentication_failed.connect(auth_failed)
 	land.build(self,art)
 	paths.build(land)
+	var tray := preload("res://systems/serving_tray.gd").new()
+	tray.position = Vector2(0,-24)
+	land.visuals.tray.add_child(tray)
+	for i in range(Farm.TRAY_CAPACITY):
+		var portion: Sprite2D = art.sprite("ear",16)
+		portion.position = Vector2(-33+i*20,-20-i*1.7)
+		land.visuals.tray.add_child(portion)
+		tray_items.append(portion)
 	add_child(tint)
 	bench = land.place("bench",Vector2(930,542),43)
 	var stations: Array = farm.recipes.keys()
@@ -470,9 +479,15 @@ func _physics_process(dt: float) -> void:
 	if highlight.visible: highlight.position = land.anchors[target]
 	hud.refresh(farm,id,target,OS.get_keycode_string(interact_key))
 	bench.visible = farm.state.upgrade
+	for i in range(tray_items.size()):
+		var portion := tray_items[i]
+		portion.visible = i < farm.state.tray.size()
+		if portion.visible: art.paint(portion,Farm.ICON[farm.state.tray[i]],16)
 	for key: String in indicators:
 		var s: Sprite2D = indicators[key]
 		s.visible = farm.state.family == "eating" if key == "table" else farm.state.jobs.has(key)
+		if s.visible and key == "table" and farm.state.served_item != "":
+			art.paint(s,Farm.ICON[farm.state.served_item],20)
 		if s.visible and key != "table":
 			var job: Dictionary = farm.state.jobs[key]
 			art.paint(s,Farm.ICON.get(job.product,"meal"),22)

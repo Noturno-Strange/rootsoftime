@@ -6,13 +6,45 @@ const MEALS := ["Angu", "Milho cozido", "Mandioca cozida", "Feijão de panela", 
 const ORDERS := ["Angu","Pamonha","Baião da vila","Broa de milho","Doce de manga"]
 var participants := 1
 const BLENDS := {"Arroz branco|Feijão de panela":"Arroz e feijão", "Fubá|Ovos":"Massa de broa", "Leite|Manga":"Leite com manga"}
-const ICON := {"Pamonha":"tamale","Broa de milho":"bread","Leite":"milk","Leite quente":"milk","Ovos":"eggs","Ovos mexidos":"eggs","Beiju":"beiju","Milho":"ear", "Fubá":"flour", "Mandioca":"roots", "Feijão":"bean", "Arroz":"rice", "Manga":"basket", "Angu":"angu", "Massa ralada":"roots", "Massa prensada":"flour", "Massa peneirada":"flour", "Farinha de mandioca":"flour"}
+const ICON := {
+ "Milho": "food_00",
+ "Mandioca": "food_01",
+ "Arroz": "food_02",
+ "Feijão": "food_03",
+ "Manga": "food_04",
+ "Ovos": "food_05",
+ "Leite": "food_06",
+ "Fubá": "food_07",
+ "Mandioca lavada": "food_08",
+ "Massa ralada": "food_09",
+ "Massa prensada": "food_10",
+ "Massa peneirada": "food_11",
+ "Farinha de mandioca": "food_12",
+ "Massa de milho": "food_13",
+ "Massa de broa": "food_14",
+ "Arroz e feijão": "food_15",
+ "Leite com manga": "food_16",
+ "Angu": "food_17",
+ "Milho cozido": "food_18",
+ "Mandioca cozida": "food_19",
+ "Feijão de panela": "food_20",
+ "Arroz branco": "food_21",
+ "Doce de manga": "food_22",
+ "Ovos mexidos": "food_23",
+ "Leite quente": "food_24",
+ "Broa de milho": "food_25",
+ "Pamonha": "food_26",
+ "Beiju": "food_27",
+ "Baião da vila": "food_28",
+ "Creme de manga": "food_29"
+}
+const TRAY_CAPACITY := 4
 var recipes: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/recipes.json"))
 var state: Dictionary
 var hands: Dictionary = {}
 
 func _init() -> void:
-	state = {"version":1, "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
+	state = {"version":2, "tray":[], "served_item":"", "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
 	for i in range(8):
 		state.plots.append({"stage":0 if i<4 else (4 if i==4 else 3), "crop":i % CROPS.size(), "ready":0.0 if i<5 else float(4*i)})
 
@@ -83,6 +115,14 @@ func act(id: int, target: String) -> String:
 				hands[id] = BLENDS[pair]
 				state.bowl = ""
 				return "Ingredientes misturados."
+		"tray":
+			if hand != "" and state.tray.size() < TRAY_CAPACITY:
+				state.tray.append(hand)
+				hands[id] = ""
+				return "%s na bandeja." % hand
+			if hand == "" and not state.tray.is_empty():
+				hands[id] = state.tray.pop_back()
+				return "%s no cesto." % hands[id]
 		"storage":
 			if not hand.is_empty():
 				state.storage.append(hand)
@@ -120,6 +160,7 @@ func act(id: int, target: String) -> String:
 		"table":
 			if MEALS.has(hand) and state.family == "home":
 				hands[id] = ""
+				state.served_item = hand
 				state.served += 1
 				state.family = "eating"
 				state.bell = state.time + 4
@@ -165,6 +206,10 @@ func prompt(id: int, target: String) -> String:
 		"school": return "Buscar as crianças" if state.family == "school" else "Chegar à escola"
 		"table": return "Servir a refeição"
 		"orchard": return "Colher manga"
+		"tray":
+			if hand == "":
+				return "Retirar " + str(state.tray.back()) if not state.tray.is_empty() else "Bandeja vazia"
+			return "Bandeja cheia" if state.tray.size() >= TRAY_CAPACITY else "Colocar " + hand
 		"storage": return "Guardar " + hand if hand != "" else "Depósito · %d itens" % state.storage.size()
 		"market": return "Restaurar banco · 15 moedas" if hand == "" and not state.upgrade else "Entregar prato na feira"
 	return ""

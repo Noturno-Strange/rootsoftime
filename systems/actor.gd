@@ -1,4 +1,6 @@
 extends CharacterBody2D
+const MALE_RIM := [Vector2(10.86,-51.89), Vector2(2.80,-51.24), Vector2(6.17,-50.86), Vector2(10.10,-51.98)]
+const FEMALE_RIM := [Vector2(12.28,-51.68), Vector2(4.30,-50.11), Vector2(6.73,-50.11), Vector2(9.16,-50.49)]
 var art: RefCounted
 var figure: Sprite2D
 var cargo: Sprite2D
@@ -62,6 +64,10 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 		held = item
 		cargo.visible = held != ""
 		if cargo.visible:
-			art.paint(cargo,preload("res://systems/farm.gd").ICON.get(item,"meal"),29)
+			var icon: String = preload("res://systems/farm.gd").ICON[item]
+			var tex: Texture2D = art.textures[icon]
+			art.paint(cargo,icon,minf(12,24*tex.get_height()/tex.get_width()))
 	cargo.visible = item != "" and action_time <= 0
-	cargo.position = Vector2(-11 if figure.flip_h else 11,-53+figure.position.y)
+	var frame_index := int(step)%4 if moving else 1
+	var rim: Vector2 = FEMALE_RIM[frame_index] if female else MALE_RIM[frame_index]
+	cargo.position = Vector2(-rim.x if figure.flip_h else rim.x,rim.y+3.5+figure.position.y)

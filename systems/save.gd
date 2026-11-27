@@ -3,13 +3,19 @@ extends RefCounted
 const PATH := "user://vila.save"
 
 static func valid(s: Variant, defaults: Dictionary) -> bool:
-	if not s is Dictionary or s.get("version") != 1: return false
+	if not s is Dictionary: return false
+	if s.get("version") == 1:
+		s.version = 2
+		s.tray = []
+		s.served_item = ""
+	if s.get("version") != 2: return false
 	for k: String in defaults:
 		if not s.has(k) or typeof(s[k]) != typeof(defaults[k]): return false
 	if s.order < 0 or s.order >= preload("res://systems/farm.gd").ORDERS.size(): return false
 	if s.family not in ["home","school","eating"] or s.escort != 0: return false
 	if s.quota < 1 or s.quota > 3 or s.delivered < 0 or s.delivered >= s.quota: return false
-	for items: Array in [s.storage,s.book]:
+	if s.tray.size() > 4: return false
+	for items: Array in [s.storage,s.book,s.tray]:
 		for item: Variant in items:
 			if not item is String: return false
 	if s.plots.size() != defaults.plots.size(): return false
