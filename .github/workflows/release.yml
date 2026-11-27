@@ -1,0 +1,40 @@
+name: Publicar Roots of Time
+on:
+  push:
+    branches: [main]
+    paths: [project.godot, .github/workflows/release.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar Godot e modelos de exportação
+        run: |
+          version=4.7.2
+          base="https://github.com/godotengine/godot-builds/releases/download/$version-stable/Godot_v$version-stable"
+          curl -fsSL --retry 3 "$base"_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/engine
+          sudo install /tmp/engine/Godot* /usr/local/bin/godot
+          curl -fsSL --retry 3 "$base"_export_templates.tpz -o /tmp/templates.zip
+          unzip -q /tmp/templates.zip 'templates/linux_release.x86_64' 'templates/windows_release_x86_64*.exe' 'templates/version.txt' -d /tmp
+          mkdir -p ~/.local/share/godot/export_templates
+          mv /tmp/templates ~/.local/share/godot/export_templates/$version.stable
+      - name: Validar e empacotar
+        run: |
+          bash tests/run.sh
+          mkdir -p build
+          godot --headless --editor --import
+          godot --headless --export-release Linux
+          godot --headless --export-release Windows
+          v=$(sed -n 's/^config\/version="\([^"]*\)"/\1/p' project.godot)
+          zip -j "RootsOfTime-$v-Linux.zip" build/RootsOfTime.x86_64 docs/THIRD_PARTY_LICENSES.md
+          zip -j "RootsOfTime-$v-Windows.zip" build/RootsOfTime.exe docs/THIRD_PARTY_LICENSES.md
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - name: Publicar os dois downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v$VERSION" --target "$GITHUB_SHA" --title "Roots of Time $VERSION" --generate-notes RootsOfTime-*.zip
