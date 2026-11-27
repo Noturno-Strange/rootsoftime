@@ -41,14 +41,9 @@ func place(key: String, pos: Vector2, height: float, solid: float = 0) -> Node2D
 	var node := Node2D.new()
 	node.position = pos
 	display.add_child(node)
-	var shadow := Polygon2D.new()
-	var points := PackedVector2Array()
-	for i in range(24):
-		var angle := TAU * i / 24.0
-		points.append(Vector2(cos(angle)*height*0.32, sin(angle)*height*0.07-2))
-	shadow.polygon = points
-	shadow.color = Color(0.19,0.15,0.07,0.22)
-	node.add_child(shadow)
+	var tex: Texture2D = art.textures[key]
+	var sprite_width := height*tex.get_width()/tex.get_height()
+	node.add_child(art.ground_shadow(sprite_width*0.98,maxf(8,height*0.25)))
 	node.add_child(art.sprite(key,height))
 	if solid > 0:
 		var depth := 116.0 if key == "warehouse" else minf(65,height*0.25)
@@ -111,14 +106,21 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		var tex: Texture2D = art.textures[d[1]]
 		var size := tex.get_size()*float(d[2])/tex.get_height()
 		scenery_reservations.append(Rect2(d[0]-Vector2(size.x/2,size.y),size).grow(5))
+	for detail: Array in [
+		["geranium",Vector2(282,387),34,11], ["geranium",Vector2(1310,323),29,9],
+		["rail",Vector2(453,781),42,24], ["rail",Vector2(520,787),38,22],
+		["granite",Vector2(796,707),39,15], ["granite",Vector2(144,805),57,22],
+		["geranium",Vector2(1060,726),32,10], ["rail",Vector2(1164,364),45,25],
+		["granite",Vector2(1318,564),48,19], ["geranium",Vector2(1380,804),38,12]]:
+		place(detail[0],detail[1],detail[2],detail[3])
 	for i in range(8):
 		var pos := Vector2(460 + (i%4)*90,646 + floori(i/4.0)*83)
 		anchors["plot%d" % i] = pos
 		var base := Node2D.new()
 		base.position = pos
 		display.add_child(base)
-		var bed: Sprite2D = art.sprite("soil",37)
-		bed.modulate = Color(0.78,0.77,0.65)
+		var bed: Sprite2D = art.sprite("dry_bed",25)
+		bed.flip_h = i%3 == 1
 		base.add_child(bed)
 		obstacle(base,32,24)
 		var seeds := Node2D.new()
@@ -170,7 +172,7 @@ func refresh(farm: RefCounted) -> void:
 		var p: Dictionary = farm.state.plots[i]
 		var stage := int(p.stage)
 		plants[i].visible = stage >= 2
-		beds[i].modulate = [Color(1.12,1.05,0.83),Color(0.90,0.75,0.58),Color(0.90,0.75,0.58),Color(0.61,0.58,0.51),Color.WHITE][stage]
+		beds[i].texture = art.textures[["dry_bed","tilled_bed","tilled_bed","wet_bed","tilled_bed"][stage]]
 		beds[i].get_parent().get_node("Seeds").visible = stage == 2
 		if stage < 2: continue
 		var key: String = ["corn","cassava","rice","bean"][int(p.crop)]

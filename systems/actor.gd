@@ -25,6 +25,7 @@ func setup(atlas: RefCounted, little: bool = false) -> void:
 	circle.radius = 8 if little else 11
 	shape.shape = circle
 	add_child(shape)
+	add_child(atlas.ground_shadow(27 if little else 38,9 if little else 13))
 	figure = atlas.sprite("child" if little else "farmer", 66 if little else 92)
 	add_child(figure)
 	cargo = atlas.sprite("basket",22)

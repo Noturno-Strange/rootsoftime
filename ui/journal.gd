@@ -24,6 +24,7 @@ var page_text: Label
 var back_page: Button
 var next_page: Button
 var dishes: Array[Button] = []
+var order_icon := TextureRect.new()
 var destination: Label
 var art := preload("res://systems/art.gd").new()
 var carry_icon := TextureRect.new()
@@ -100,14 +101,11 @@ func button(parent: Control, value: String, callback: Callable) -> Button:
 	return b
 
 func parchment() -> StyleBoxTexture:
-	var paper := AtlasTexture.new()
-	paper.atlas = preload("res://assets/book.webp")
-	paper.region = Rect2(0,0,1210,1280)
 	var frame := StyleBoxTexture.new()
-	frame.texture = paper
+	frame.texture = preload("res://assets/binding.webp")
 	for side in [SIDE_LEFT,SIDE_TOP,SIDE_RIGHT,SIDE_BOTTOM]:
-		frame.set_texture_margin(side,16)
-		frame.set_content_margin(side,18)
+		frame.set_texture_margin(side,24)
+		frame.set_content_margin(side,20)
 	return frame
 
 func panel(parent: Control, dark: bool = false) -> PanelContainer:
@@ -121,8 +119,13 @@ func _ready() -> void:
 	serif.font_names = PackedStringArray(["Georgia","Liberation Serif","DejaVu Serif"])
 	var theme := Theme.new()
 	theme.default_font_size = 16
-	for state: String in ["normal","hover","pressed","focus"]:
-		theme.set_stylebox(state,"Button",box(Color("#904327") if state=="normal" else Color("#68402c"),Color("#b39a69"),10))
+	var button_colors := {"normal":"#7c412e","hover":"#975739","pressed":"#40573a"}
+	for state: String in button_colors:
+		theme.set_stylebox(state,"Button",box(Color(button_colors[state]),Color("#b99562"),12))
+	var focus_frame := box(Color.TRANSPARENT,Color("#ffe39a"),12)
+	focus_frame.draw_center = false
+	focus_frame.shadow_size = 0
+	theme.set_stylebox("focus","Button",focus_frame)
 	for state in ["tab_selected","tab_unselected","tab_hovered"]:
 		theme.set_stylebox(state,"TabContainer",box(Color("#43593d") if state=="tab_selected" else Color("#765035"),Color("#b99053"),10))
 	for state in ["font_selected_color","font_unselected_color","font_hovered_color"]:
@@ -144,7 +147,14 @@ func _ready() -> void:
 	var orders := VBoxContainer.new()
 	requests.add_child(orders)
 	label(orders,"Pedidos da vila",20,Color("#87371f"),true)
-	order_label = label(orders,"",17,INK)
+	var item_row := HBoxContainer.new()
+	item_row.add_theme_constant_override("separation",10)
+	orders.add_child(item_row)
+	order_icon.custom_minimum_size = Vector2(42,36)
+	order_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	order_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	item_row.add_child(order_icon)
+	order_label = label(item_row,"",18,INK,true)
 	destination = label(orders,"",16,Color("#435626"))
 	task_detail = label(orders,"",15)
 	task_meter.custom_minimum_size = Vector2(200,9)
@@ -162,6 +172,7 @@ func _ready() -> void:
 	kit_button.add_theme_constant_override("icon_max_width",32)
 	kit_button.tooltip_text = "Roda para trocar · Ctrl + roda para zoom"
 	build_kit(theme)
+	tools.add_theme_constant_override("separation",8)
 	button(tools,"Caderno   Esc",toggle)
 	var pouch := panel(base,true)
 	pouch.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
@@ -182,7 +193,8 @@ func _ready() -> void:
 	context.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	context.offset_bottom = -22
 	news = label(context,"",17,Color.WHITE)
-	hint = label(context,"",18,Color.WHITE)
+	hint = label(context,"",18,CREAM)
+	hint.add_theme_stylebox_override("normal",box(Color("#344433"),Color("#b99562"),13))
 	for l in [news,hint]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_color_override("font_outline_color",Color("#403b2a"))
@@ -456,13 +468,15 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	var minutes := int(390+s.time*2.0)
 	date_label.text = "Dia %02d   ·   %02d:%02d" % [1+minutes/1440,(minutes/60)%24,minutes%60]
 	objective.text = "%s   ·   %d moedas" % ["Chuva de verão" if preload("res://systems/weather.gd").raining(s.time) else "Sol de verão",s.coins]
-	order_label.text = "Feira · %s (%d/%d)" % [farm.ORDERS[int(s.order)],s.delivered,s.quota]
+	order_icon.texture = art.textures[Farm.ICON[farm.ORDERS[int(s.order)]]]
+	order_label.text = "%s   %d/%d" % [farm.ORDERS[int(s.order)],s.delivered,s.quota]
 	var item: String = farm.hands.get(me,"")
 	carry_icon.texture = art.textures.get(farm.ICON.get(item,"meal") if item != "" else "basket")
 	carry.text = "Cesto  ·  " + (item if item != "" else "vazio")
 	hint.text = "["+key+"]  "+farm.prompt(me,target,tool_id) if target != "" else ""
 	var needed: int = farm.required_tool(target)
 	if needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target,tool_id)]
+	hint.visible = not hint.text.is_empty()
 	task_detail.text = ""
 	task_meter.max_value = s.quota
 	task_meter.value = s.delivered

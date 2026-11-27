@@ -24,3 +24,10 @@ func paint(s: Sprite2D, key: String, height: float) -> void:
 	s.centered = false
 	s.offset = Vector2(-tex.get_width() * 0.5, -tex.get_height())
 	s.scale = Vector2.ONE * height / tex.get_height()
+
+func ground_shadow(width: float, depth: float) -> Sprite2D:
+	var shade := Sprite2D.new()
+	shade.texture = preload("res://assets/shade.png")
+	shade.scale = Vector2(width,depth)/shade.texture.get_size()
+	shade.position = Vector2(width*0.07,-depth*0.14)
+	return shade
