@@ -102,7 +102,7 @@ func button(parent: Control, value: String, callback: Callable) -> Button:
 func parchment() -> StyleBoxTexture:
 	var paper := AtlasTexture.new()
 	paper.atlas = preload("res://assets/book.webp")
-	paper.region = Rect2(0,0,520,550)
+	paper.region = Rect2(0,0,1210,1280)
 	var frame := StyleBoxTexture.new()
 	frame.texture = paper
 	for side in [SIDE_LEFT,SIDE_TOP,SIDE_RIGHT,SIDE_BOTTOM]:
