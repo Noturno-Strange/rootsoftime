@@ -15,7 +15,10 @@ const SITES := {
 const SPAWN := Vector2(457,674)
 const CHILD_HOME := Vector2(400,548)
 const CHILD_SCHOOL := Vector2(1245,336)
-const BOUNDS := Rect2(90,175,1360,755)
+const WORLD_SIZE := Vector2(2560,1024)
+const BOUNDS := Rect2(90,175,2390,755)
+const Farm = preload("res://systems/farm.gd")
+var dropped: Dictionary = {}
 var teacher: Node2D
 var roofs: Dictionary = {}
 var scenery_reservations: Array[Rect2] = []
@@ -115,6 +118,12 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	ground.centered = false
 	ground.scale = Vector2(1536,1024)/ground.texture.get_size()
 	root.add_child(ground)
+	var clearing := Sprite2D.new()
+	clearing.texture = preload("res://assets/clearing.webp")
+	clearing.centered = false
+	clearing.position.x = 1408
+	clearing.scale = Vector2(1152,1024)/clearing.texture.get_size()
+	root.add_child(clearing)
 	root.add_child(soil_layer)
 	var worked_ground := Sprite2D.new()
 	worked_ground.texture = preload("res://assets/garden_ground.webp")
@@ -180,11 +189,42 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	for i in range(18):
 		var pos := Vector2(i*94+rng.randf_range(-22,22),rng.randf_range(142,206))
 		plant_tree("banana" if i%3==0 else "mango",pos,rng.randf_range(145,225),18)
-	for side in [70,1478]:
+	for side in [70,2510]:
 		for i in range(6):
 			plant_tree("mango" if i%2==0 else "banana",Vector2(side+rng.randf_range(-20,20),330+i*120),rng.randf_range(138,199),15)
 	for pos in [Vector2(230,455),Vector2(1113,370),Vector2(1090,833),Vector2(278,809)]:
 		plant_tree("banana",pos,113,12)
+
+	build_orchard()
+
+func build_orchard() -> void:
+	for site: Array in [
+		["pequi_tree",Vector2(1572,467),204,20], ["lime_tree",Vector2(1785,400),157,17],
+		["acerola_tree",Vector2(1822,668),134,14],
+		["village_hut",Vector2(2115,350),173,78], ["village_hut",Vector2(2382,419),187,86],
+		["village_hut",Vector2(2268,722),155,68]]:
+		place(site[0],site[1],site[2],site[3])
+	for site: Array in [
+		["gardener",Vector2(1992,452)], ["weaver",Vector2(2104,559)],
+		["cook",Vector2(2222,669)], ["healer",Vector2(2342,481)]]:
+		var key: String = site[0]
+		visuals[key] = place(key,site[1],88,10)
+		anchors[key] = site[1]+Vector2(0,14)
+	var spots := {"pequi_drop":Vector2(1614,489),"lime_drop":Vector2(1821,422),"acerola_drop":Vector2(1857,688)}
+	for key: String in spots:
+		var icon: String = Farm.ICON[Farm.FRUIT_SPOTS[key]]
+		dropped[key] = place(icon,spots[key],17)
+		anchors[key] = spots[key]
+	for i in 10:
+		plant_tree("mango" if i%2 else "banana",Vector2(1515+i*99,142+13*sin(i)),147+8*(i%4),15)
+
+func update_fruits(farm: RefCounted) -> void:
+	for key: String in dropped:
+		var remaining: float = farm.state.fallen[key]-farm.state.time
+		var fruit: Node2D = dropped[key]
+		fruit.visible = remaining < 0.45
+		var t := clampf(remaining/0.45,0.0,1.0)
+		fruit.position = anchors[key] - Vector2(21*t,62*t*(2.0-t))
 
 
 func plant_tree(key: String, pos: Vector2, height: float, trunk: float) -> void:
@@ -201,6 +241,7 @@ func nearest(pos: Vector2) -> String:
 	for key: String in anchors:
 		if key == "teacher" and not inside_building("school",pos): continue
 		var dist := pos.distance_to(anchors[key])
+		if dropped.has(key) and dist > 32: continue
 		if dist < best:
 			best = dist
 			target = key

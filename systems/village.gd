@@ -87,7 +87,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.limit_left = 0
 	camera.limit_top = 0
-	camera.limit_right = 1536
+	camera.limit_right = int(Layout.WORLD_SIZE.x)
 	camera.limit_bottom = 1024
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8
@@ -340,8 +340,10 @@ func perform(id: int, key: String, tool: int = 0) -> bool:
 	if key == "teacher" and not land.inside_building("school",actors[id].position): return false
 	var needed := farm.required_tool(key)
 	if needed >= 0 and tool != needed: return false
-	if actors[id].position.distance_to(land.anchors[key]) > 68: return false
-	if Time.get_ticks_msec() - int(last_actions.get(id,-1000)) < 220: return false
+	var reach := 32 if Farm.FRUIT_SPOTS.has(key) else 68
+	if actors[id].position.distance_to(land.anchors[key]) > reach: return false
+	var recovery := 850 if farm.sore(id) and key.begins_with("plot") else 220
+	if Time.get_ticks_msec() - int(last_actions.get(id,-1000)) < recovery: return false
 	last_actions[id] = Time.get_ticks_msec()
 	if (key == "school" and farm.state.family == "out") or (key == "home" and farm.state.family == "back"):
 		if kids.any(func(k: Actor) -> bool: return k.position.distance_to(land.anchors[key]) > 105):
@@ -363,7 +365,7 @@ func perform(id: int, key: String, tool: int = 0) -> bool:
 @rpc("authority","call_remote","reliable")
 func feedback(id: int, key: String, message: String, kind: String) -> void:
 	if multiplayer.get_unique_id() == id: hud.status(message)
-	if key == "teacher": return
+	if key == "teacher" or key == "healer" or Farm.NEIGHBORS.has(key): return
 	if actors.has(id):
 		var worker: Actor = actors[id]
 		worker.activity = "pour" if kind == "water" else ("hoe" if message == "Terra preparada." else "pick")
@@ -483,7 +485,7 @@ func _physics_process(dt: float) -> void:
 		directions[1] = dir
 		for peer: int in actors:
 			var avatar: Actor = actors[peer]
-			avatar.velocity = directions.get(peer,Vector2.ZERO)*155
+			avatar.velocity = directions.get(peer,Vector2.ZERO)*(120 if farm.unwell(peer) and not farm.sore(peer) else 155)
 			avatar.move_and_slide()
 			avatar.position = avatar.position.clamp(Layout.BOUNDS.position,Layout.BOUNDS.end)
 			avatar.pose(avatar.get_real_velocity(),dt,farm.hands.get(peer,""))
@@ -520,6 +522,7 @@ func _physics_process(dt: float) -> void:
 	camera.position = viewer + Vector2(40,-155)
 	weather.position = camera.position-Vector2(0,200)
 	weather.emitting = weather.raining(farm.state.time)
+	land.update_fruits(farm)
 	for kid in kids:
 		kid.eating = farm.state.family == "eating"
 	land.reveal_rooms(viewer,dt)
@@ -610,6 +613,9 @@ func update_goal(id: int) -> void:
 	elif farm.state.family == "school" and farm.state.time >= farm.state.bell:
 		goal = "school"
 		caption = "Buscar na escola"
+	if farm.unwell(id):
+		goal = "healer"
+		caption = ("Dor muscular" if farm.sore(id) else "Mal-estar") + " · procure o pajé a leste"
 	var point: Vector2 = get_canvas_transform()*(land.anchors[goal]-Vector2(0,38))
 	var safe := point.clamp(Vector2(20,92),get_viewport_rect().size-Vector2(48,90))
 	var direction := point-safe

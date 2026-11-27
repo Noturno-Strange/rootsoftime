@@ -1314,5 +1314,103 @@
   436,
   480,
   100
+ ],
+ "pequi_tree": [
+  "aldeia",
+  4,
+  4,
+  385,
+  396
+ ],
+ "lime_tree": [
+  "aldeia",
+  412,
+  4,
+  368,
+  392
+ ],
+ "acerola_tree": [
+  "aldeia",
+  820,
+  4,
+  343,
+  351
+ ],
+ "village_hut": [
+  "aldeia",
+  1228,
+  4,
+  396,
+  298
+ ],
+ "gardener": [
+  "aldeia",
+  4,
+  412,
+  165,
+  400
+ ],
+ "weaver": [
+  "aldeia",
+  412,
+  412,
+  195,
+  400
+ ],
+ "cook": [
+  "aldeia",
+  820,
+  412,
+  152,
+  400
+ ],
+ "healer": [
+  "aldeia",
+  1228,
+  412,
+  164,
+  400
+ ],
+ "pequi_fruit": [
+  "frutas",
+  4,
+  4,
+  400,
+  380
+ ],
+ "lime_fruit": [
+  "frutas",
+  412,
+  4,
+  400,
+  371
+ ],
+ "acerola_fruit": [
+  "frutas",
+  820,
+  4,
+  400,
+  393
+ ],
+ "pequi_rice": [
+  "frutas",
+  1228,
+  4,
+  400,
+  343
+ ],
+ "lime_drink": [
+  "frutas",
+  4,
+  412,
+  341,
+  400
+ ],
+ "acerola_jam": [
+  "frutas",
+  412,
+  412,
+  366,
+  400
  ]
 }

@@ -63,6 +63,23 @@ func run() -> void:
 	class_farm.tick(24)
 	check("terminou" in class_farm.act(1,"teacher") and class_farm.state.family == "school", "Professora avisa da saída sem concluir a escolta")
 	player.position = village.land.SPAWN
+	var grove := Farm.new()
+	check(not grove.act(1,"pequi_drop").is_empty() and grove.act(2,"pequi_drop").is_empty(),"Fruto caído tem retirada exclusiva")
+	grove.tick(33)
+	check(not grove.act(2,"pequi_drop").is_empty(),"Novo pequi cai após intervalo")
+	for i in Farm.HARVEST_LIMIT:
+		grove.hands[2] = ""
+		grove.tick(33)
+		grove.act(2,"lime_drop")
+	check(grove.unwell(2) and not grove.unwell(1),"Mal-estar individual após esforço")
+	check(not grove.act(2,"healer").is_empty() and not grove.unwell(2),"Cuidados do pajé restauram disposição")
+	grove.state.effort[1] = Farm.HARVEST_LIMIT-1
+	grove.hands[1] = ""
+	grove.state.plots[0].stage = 4
+	grove.act(1,"plot0")
+	check(grove.sore(1) and not grove.sore(2),"Dor muscular na colheita do canteiro")
+	grove.act(1,"healer")
+	check(not grove.unwell(1),"Recuperação da dor muscular")
 	check_workshop()
 	check_rain_and_market()
 	check_progression()
@@ -156,6 +173,10 @@ func make_product(farm: Farm, product: String) -> bool:
 		farm.tick(25)
 		return farm.required_tool(key) == 3 and not farm.act(1,key).is_empty() and farm.hands[1] == product
 	var sources := {"Leite":"cow","Ovos":"hen","Manga":"orchard"}
+	for spot: String in Farm.FRUIT_SPOTS:
+		if Farm.FRUIT_SPOTS[spot] == product:
+			farm.tick(33)
+			return not farm.act(1,spot).is_empty() and farm.hands[1] == product
 	if sources.has(product):
 		farm.tick(40)
 		return not farm.act(1,sources[product]).is_empty() and farm.hands[1] == product

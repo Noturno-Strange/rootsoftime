@@ -9,6 +9,14 @@
     "Massa ralada": [
       "Massa prensada",
       4
+    ],
+    "Limão": [
+      "Sumo de limão",
+      3
+    ],
+    "Acerola": [
+      "Suco de acerola",
+      3
     ]
   },
   "stove": {
@@ -46,6 +54,18 @@
     ],
     "Arroz e feijão": [
       "Baião da vila",
+      6
+    ],
+    "Arroz cru com pequi": [
+      "Arroz com pequi",
+      7
+    ],
+    "Suco de acerola": [
+      "Geleia de acerola",
+      7
+    ],
+    "Leite com acerola": [
+      "Creme de acerola",
       6
     ]
   },

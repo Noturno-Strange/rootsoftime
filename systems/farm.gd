@@ -3,7 +3,7 @@ extends RefCounted
 const Weather = preload("res://systems/weather.gd")
 const ORDER_BONUS := 3
 # Receitas com mais etapas ou misturas rendem mais na feira.
-const ARTISAN_PRICES := {"Angu":7, "Pamonha":7, "Creme de manga":8, "Broa de milho":10,
+const ARTISAN_PRICES := {"Arroz com pequi":10,"Creme de acerola":8,"Angu":7, "Pamonha":7, "Creme de manga":8, "Broa de milho":10,
 	"Baião da vila":12, "Farinha de mandioca":13, "Beiju":13}
 
 func sale_price(item: String) -> int:
@@ -15,13 +15,36 @@ func market_payout(item: String) -> int:
 		price += ORDER_BONUS
 	return price
 
+const FRUIT_SPOTS := {"pequi_drop":"Pequi", "lime_drop":"Limão", "acerola_drop":"Acerola"}
+const FALL_INTERVAL := {"pequi_drop":32.0,"lime_drop":24.0,"acerola_drop":20.0}
+const NEIGHBORS := {
+	"gardener":"No pomar a oeste das casas, procure os frutos maduros que caíram.",
+	"weaver":"Eu cuido das cestarias. Leve um fruto por vez ou divida o transporte com a turma.",
+	"cook":"Aqui fazemos arroz com pequi. Junte arroz cru e pequi na bancada e leve a mistura ao fogão."
+}
+const HARVEST_LIMIT := 10
+
+func unwell(id: int) -> bool:
+	return int(state.effort.get(id,0)) >= HARVEST_LIMIT
+
+func sore(id: int) -> bool:
+	return int(state.effort.get(id,0)) == HARVEST_LIMIT + 1
+
+func record_harvest(id: int, from_bed: bool = false) -> void:
+	if unwell(id): return
+	var count := int(state.effort.get(id,0))+1
+	state.effort[id] = count+1 if count == HARVEST_LIMIT and from_bed else count
+
 const CROPS := ["Milho", "Mandioca", "Arroz", "Feijão"]
 const GROW := [14, 20, 12, 16]
-const MEALS := ["Angu", "Milho cozido", "Mandioca cozida", "Feijão de panela", "Arroz branco", "Doce de manga", "Ovos mexidos", "Leite quente", "Broa de milho", "Pamonha", "Beiju", "Baião da vila", "Creme de manga"]
+const MEALS := ["Angu", "Milho cozido", "Mandioca cozida", "Feijão de panela", "Arroz branco", "Doce de manga", "Ovos mexidos", "Leite quente", "Broa de milho", "Pamonha", "Beiju", "Baião da vila", "Creme de manga", "Arroz com pequi", "Sumo de limão", "Suco de acerola", "Geleia de acerola", "Creme de acerola"]
 const ORDERS := ["Angu","Pamonha","Baião da vila","Broa de milho","Doce de manga"]
 var participants := 1
-const BLENDS := {"Arroz branco|Feijão de panela":"Arroz e feijão", "Fubá|Ovos":"Massa de broa", "Leite|Manga":"Leite com manga"}
+const BLENDS := {"Arroz|Pequi":"Arroz cru com pequi","Acerola|Leite":"Leite com acerola","Arroz branco|Feijão de panela":"Arroz e feijão", "Fubá|Ovos":"Massa de broa", "Leite|Manga":"Leite com manga"}
 const ICON := {
+ "Pequi":"pequi_fruit","Limão":"lime_fruit","Acerola":"acerola_fruit",
+ "Arroz cru com pequi":"pequi_rice","Arroz com pequi":"pequi_rice","Sumo de limão":"lime_drink",
+ "Suco de acerola":"acerola_fruit","Geleia de acerola":"acerola_jam","Leite com acerola":"food_16","Creme de acerola":"food_29",
  "Milho": "food_00",
  "Mandioca": "food_01",
  "Arroz": "food_02",
@@ -70,7 +93,7 @@ var state: Dictionary
 var hands: Dictionary = {}
 
 func _init() -> void:
-	state = {"version":3, "levels":[1,1,1,1], "water":2, "tray":[], "served_item":"", "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
+	state = {"version":4, "fallen":{"pequi_drop":0.0,"lime_drop":0.0,"acerola_drop":0.0}, "effort":{}, "levels":[1,1,1,1], "water":2, "tray":[], "served_item":"", "time":0.0, "plots":[], "jobs":{}, "storage":[], "coins":0, "sales":0, "served":0, "book":[], "fruit":0.0, "family":"home", "escort":0, "bell":0.0, "trips":0, "upgrade":false, "hen":0.0, "cow":0.0, "bowl":"", "order":0, "delivered":0, "quota":1, "feasts":0}
 	for i in range(8):
 		state.plots.append({"stage":0 if i<4 else (4 if i==4 else 3), "crop":i % CROPS.size(), "ready":0.0 if i<5 else float(4*i)})
 
@@ -89,12 +112,25 @@ func release(id: int) -> void:
 	if hand != "":
 		state.storage.append(hand)
 	hands.erase(id)
+	state.effort.erase(id)
 	if state.escort == id:
 		state.family = "home" if state.family == "out" else "school"
 		state.escort = 0
 
 func act(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
+	if FRUIT_SPOTS.has(target):
+		if hand != "" or state.time < state.fallen[target]: return ""
+		hands[id] = FRUIT_SPOTS[target]
+		state.fallen[target] = state.time + FALL_INTERVAL[target]
+		record_harvest(id)
+		return "%s recolhido do chão." % hands[id]
+	if NEIGHBORS.has(target): return NEIGHBORS[target]
+	if target == "healer":
+		if unwell(id):
+			state.effort.erase(id)
+			return "Pajé · O cuidado terminou. Você já pode voltar ao trabalho."
+		return "Pajé · Seja bem-vindo. Se sentir mal-estar na lida, venha descansar aqui."
 	if target.begins_with("plot"):
 		var index := target.trim_prefix("plot").to_int()
 		if index < 0 or index >= state.plots.size(): return ""
@@ -113,6 +149,7 @@ func act(id: int, target: String, tool: int = 0) -> String:
 					hands[id] = CROPS[int(p.crop)]
 					p.stage = 0
 					for extra in range(1,int(state.levels[3])): state.storage.append(hands[id])
+					record_harvest(id,true)
 					return "Colheita no cesto."
 		return ""
 	if recipes.has(target):
@@ -245,6 +282,11 @@ func act(id: int, target: String, tool: int = 0) -> String:
 
 func prompt(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
+	if FRUIT_SPOTS.has(target):
+		if state.time < state.fallen[target]: return "Aguardando outro fruto cair"
+		return "Esvazie o cesto para recolher" if hand != "" else "Recolher %s do chão" % str(FRUIT_SPOTS[target]).to_lower()
+	if NEIGHBORS.has(target): return {"gardener":"Conversar com a horticultora","weaver":"Conversar com o artesão","cook":"Conversar com a cozinheira"}[target]
+	if target == "healer": return "Receber cuidados do pajé" if unwell(id) else "Conversar com o pajé"
 	if target.begins_with("plot"):
 		var p: Dictionary = state.plots[target.trim_prefix("plot").to_int()]
 		if p.stage == 2 and Weather.seconds_until_rain(state.time) <= 15:

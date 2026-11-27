@@ -12,7 +12,16 @@ static func valid(s: Variant, defaults: Dictionary) -> bool:
 		s.version = 3
 		s.levels = [1,1,1,1]
 		s.water = 2
-	if s.get("version") != 3: return false
+	if s.get("version") == 3:
+		s.version = 4
+		s.fallen = defaults.fallen.duplicate()
+		s.effort = {}
+	if s.get("version") != 4: return false
+	if not s.get("fallen") is Dictionary or not s.get("effort") is Dictionary: return false
+	for spot: String in defaults.fallen:
+		if not s.fallen.get(spot) is float or not is_finite(s.fallen[spot]): return false
+	for peer: Variant in s.effort:
+		if not peer is int or not s.effort[peer] is int or s.effort[peer] < 0 or s.effort[peer] > preload("res://systems/farm.gd").HARVEST_LIMIT+1: return false
 	if not s.get("levels") is Array or s.levels.size() != 4: return false
 	for level: Variant in s.levels:
 		if not level is int or level < 1 or level > 3: return false
@@ -46,6 +55,9 @@ static func recover(defaults: Dictionary) -> Dictionary:
 
 static func write(farm: RefCounted) -> bool:
 	var saved: Dictionary = farm.state.duplicate(true)
+	# IDs ENet de convidados valem apenas para a sessão atual.
+	for peer: int in saved.effort.keys():
+		if peer != 1: saved.effort.erase(peer)
 	for item: String in farm.hands.values():
 		if item != "": saved.storage.append(item)
 	if saved.escort != 0:
