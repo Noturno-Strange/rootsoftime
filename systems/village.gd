@@ -595,7 +595,8 @@ func update_escort(dt: float) -> void:
 			var turn := float(farm.state.time)/6.5 + i*0.42
 			goal = play_points[(int(turn)+i)%play_points.size()]
 		elif phase in ["out","back"] and actors.has(farm.state.escort):
-			goal = actors[farm.state.escort].position+offset
+			var spacing := Vector2([-44,39,-62,65][i],[30,39,69,78][i])
+			goal = actors[farm.state.escort].position+spacing
 		elif phase == "eating":
 			kid.position = goal
 		if changed or farm.state.time >= deadlines.get(i,0.0):

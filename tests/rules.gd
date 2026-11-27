@@ -32,6 +32,12 @@ func run() -> void:
 	check(hut.self_modulate.a < 0.4,"Telhado revela a pessoa atrás da casa")
 	village.land.reveal_rooms(hut.global_position+Vector2(0,20),1)
 	check(is_equal_approx(hut.self_modulate.a,1.0),"Casa opaca ao sair de trás dela")
+	preview.hands[1] = "Suco de acerola"
+	check(preview.hint_is_passive(1,"grain_stall"),"Barraca de grãos informa que não recebe suco")
+	preview.hands[1] = "Milho"
+	check(not preview.hint_is_passive(1,"grain_stall"),"Milho habilita a venda de grãos")
+	village.land.reveal_rooms(village.land.SITES.home[0]+Vector2(180,-20),1)
+	check(village.land.roofs.home.modulate.a < 0.5 and not village.land.interiors.home.visible,"Lateral da casa revela o jogador pelo exterior")
 	var wheel := InputEventMouseButton.new()
 	wheel.pressed = true
 	wheel.button_index = MOUSE_BUTTON_WHEEL_UP

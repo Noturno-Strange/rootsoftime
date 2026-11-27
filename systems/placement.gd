@@ -124,7 +124,10 @@ func reveal_rooms(viewer: Vector2, delta: float) -> void:
 	for key: String in roofs:
 		var inside := inside_building(key,viewer)
 		var relative: Vector2 = viewer - SITES[key][0]
-		var behind := key == "school" and relative.y < -79 and absf(relative.x) < float(SITES[key][3])
+		var texture: Texture2D = art.textures[key]
+		var height: float = SITES[key][2]
+		var half_width := height * texture.get_width() / texture.get_height() * 0.5
+		var behind := relative.y <= 0 and relative.y >= -height and absf(relative.x) <= half_width+9
 		var roof: Node2D = roofs[key]
 		var opacity := 0.0 if inside else (0.4 if behind else 1.0)
 		roof.modulate.a = move_toward(roof.modulate.a,opacity,delta*5)
@@ -150,6 +153,14 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	south.position.y = 896
 	south.scale = Vector2(2560,768)/south.texture.get_size()
 	root.add_child(south)
+	var lane := Polygon2D.new()
+	lane.position = Vector2(980,330)
+	lane.polygon = PackedVector2Array([Vector2.ZERO,Vector2(740,0),Vector2(740,740),Vector2(0,740)])
+	var paint := ShaderMaterial.new()
+	paint.shader = preload("res://systems/lane.gdshader")
+	paint.set_shader_parameter("earth",ground.texture)
+	lane.material = paint
+	root.add_child(lane)
 	root.add_child(soil_layer)
 	var worked_ground := Sprite2D.new()
 	worked_ground.texture = preload("res://assets/garden_ground.webp")
@@ -180,11 +191,13 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	anchors["teacher"] = teacher.position + Vector2(0,13)
 	for detail: Array in [
 		["geranium",Vector2(282,387),34,11], ["geranium",Vector2(1310,323),29,9],
-		["rail",Vector2(453,781),42,24], ["rail",Vector2(520,787),38,22],
+		
 		["granite",Vector2(796,707),39,15], ["granite",Vector2(144,805),57,22],
-		["geranium",Vector2(1060,726),32,10], ["rail",Vector2(1164,364),45,25],
+		["geranium",Vector2(1060,726),32,10],
 		["granite",Vector2(1318,564),48,19], ["geranium",Vector2(1380,804),38,12]]:
 		place(detail[0],detail[1],detail[2],detail[3])
+	fenceline(Vector2(423,783),3)
+	fenceline(Vector2(1088,363),2)
 	for i in range(12):
 		var pos := Vector2(460 + (i%4)*90,646 + floori(i/4.0)*83)
 		if i >= 8: pos = Vector2(420+(i-8)*90,1358)
@@ -225,6 +238,13 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	build_orchard()
 	build_fair()
 
+func fenceline(start: Vector2, spans: int) -> void:
+	var fence := preload("res://systems/fenceline.gd").new()
+	fence.position = start
+	fence.spans = spans
+	fence.seed_value = int(start.x)
+	display.add_child(fence)
+
 func build_fair() -> void:
 	for site: Array in [
 		["fruit_stall","fruit_booth",Vector2(1345,1198)], ["grain_stall","grain_booth",Vector2(1542,1206)],
@@ -246,9 +266,8 @@ func build_fair() -> void:
 		animals[key] = place(key,site[1],site[2])
 		anchors[key] = site[1]+Vector2(0,12)
 		place("basket",site[1]+Vector2(-24,0),20)
-	# Os lances compartilham os mourões e deixam uma entrada diante do galinheiro.
-	for x in [362,408,454,500,662,708,754,800,846]:
-		place("rail",Vector2(x,1562+roundi(2*sin(x*0.025))),42,23)
+	fenceline(Vector2(335,1562),4)
+	fenceline(Vector2(642,1565),5)
 	for x in [1030,1840]: place("geranium",Vector2(x,1260),38,10)
 	for i in 5:
 		var actor := preload("res://systems/actor.gd").new()

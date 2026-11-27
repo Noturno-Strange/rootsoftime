@@ -336,6 +336,7 @@ func act(id: int, target: String, tool: int = 0) -> String:
 
 func hint_is_passive(id: int, target: String) -> bool:
 	var hand: String = hands.get(id,"")
+	if OFFERS.has(target): return not OFFERS[target].has(hand)
 	if recipes.has(target):
 		if state.jobs.has(target):
 			return state.time < state.jobs[target].ready or not hand.is_empty()
