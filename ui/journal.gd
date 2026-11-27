@@ -28,7 +28,16 @@ var page: PanelContainer
 var host_button: Button
 var join_button: Button
 var leave_button: Button
-var farmer: CheckButton
+const PORTRAITS := ["farmer","woman1","davi0","rosa0"]
+const NAMES := ["Bento","Clara","Davi","Rosa"]
+const SIZES := [Vector2i(960,540),Vector2i(1280,720),Vector2i(1600,900),Vector2i(1920,1080),Vector2i(2560,1440)]
+var avatar := 0
+var cards: Array[Button] = []
+var sections := TabContainer.new()
+var resolution := OptionButton.new()
+var fullscreen := CheckButton.new()
+var key_button: Button
+signal display_changed
 var chat_box := VBoxContainer.new()
 var chat_lines: Label
 var chat_entry: LineEdit
@@ -95,6 +104,10 @@ func _ready() -> void:
 	theme.default_font_size = 16
 	for state: String in ["normal","hover","pressed","focus"]:
 		theme.set_stylebox(state,"Button",box(Color("#904327") if state=="normal" else Color("#68402c"),Color("#b39a69"),10))
+	for state in ["tab_selected","tab_unselected","tab_hovered"]:
+		theme.set_stylebox(state,"TabContainer",box(Color("#43593d") if state=="tab_selected" else Color("#765035"),Color("#b99053"),10))
+	for state in ["font_selected_color","font_unselected_color","font_hovered_color"]:
+		theme.set_color(state,"TabContainer",Color.WHITE)
 	base.theme = theme
 	add_child(base)
 	base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -180,7 +193,8 @@ func _ready() -> void:
 		recipe_note.visible = i == 1
 		if i == 1: recipe_note.text = "Leve milho ao moinho. Retire o fubá e cozinhe no fogão."
 		spread_art.texture = art.textures[["home","angu","market","farmer"][i]]
-		spread_caption.text = ["A vila","Angu","Feira comunitária","Agricultor"][i])
+		spread_caption.text = ["A vila","Angu","Feira comunitária","Personagem"][i]
+		if i == 3: show_avatar(avatar))
 	spread_art.texture = art.textures["home"]
 	spread_caption.text = "A vila"
 	label(layout,"Caderno da vila",32,INK,true)
@@ -221,7 +235,36 @@ func _ready() -> void:
 		select.add_theme_constant_override("icon_max_width",72)
 	recipe_note.text = "Angu  ·  "+recipes.Angu[1]
 	label(cookbook,"Na chapa também se preparam ovos e leite. Para o creme de manga,\nmisture leite e manga na bancada e leve ao fogão.",15)
-	label(options,"Conforto e personagem",23,INK,true)
+	options.add_child(sections)
+	sections.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
+	var cast := section("Personagem")
+	var screen := section("Tela")
+	var audio := section("Som e controles")
+	sections.tab_changed.connect(func(_i: int) -> void: show_avatar(avatar))
+	label(cast,"Quem vai cuidar da vila?",22,INK,true)
+	var choices := GridContainer.new()
+	choices.columns = 2
+	cast.add_child(choices)
+	var group := ButtonGroup.new()
+	for i in NAMES.size():
+		var card := button(choices,NAMES[i],func() -> void: show_avatar(i); settings_changed.emit())
+		card.toggle_mode = true
+		card.button_group = group
+		card.custom_minimum_size = Vector2(174,61)
+		card.add_theme_stylebox_override("pressed",box(Color("#36563a"),Color("#d79e38"),10))
+		card.icon = art.textures[PORTRAITS[i]]
+		card.add_theme_constant_override("icon_max_width",40)
+		cards.append(card)
+	label(screen,"Exibição do jogo",22,INK,true)
+	screen.add_child(fullscreen)
+	fullscreen.text = "Tela cheia"
+	style_check(fullscreen)
+	fullscreen.toggled.connect(func(_on: bool) -> void: display_changed.emit())
+	label(screen,"Resolução em janela",17)
+	screen.add_child(resolution)
+	for dimensions: Vector2i in SIZES:
+		resolution.add_item("%d × %d" % [dimensions.x,dimensions.y])
+	resolution.item_selected.connect(func(_i: int) -> void: display_changed.emit())
 	label(session,"Partida cooperativa",23,INK,true)
 	var row := HBoxContainer.new()
 	session.add_child(row)
@@ -242,8 +285,6 @@ func _ready() -> void:
 	steady.text = "Câmera sem suavização"
 	quiet = CheckButton.new()
 	quiet.text = "Silenciar o jogo"
-	farmer = CheckButton.new()
-	farmer.text = "Jogar como agricultora"
 	session.add_child(chat_box)
 	chat_lines = label(chat_box,"",14)
 	chat_lines.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -254,16 +295,17 @@ func _ready() -> void:
 	chat_entry.text_submitted.connect(func(message: String) -> void:
 		chat_requested.emit(message)
 		chat_entry.clear())
-	for check in [steady,quiet,farmer]:
-		check.add_theme_color_override("font_color",CREAM)
-		options.add_child(check)
+	for check in [steady,quiet]:
+		style_check(check)
+		(audio if check == quiet else screen).add_child(check)
 		check.toggled.connect(func(_on: bool) -> void: settings_changed.emit())
-	var volumes := HBoxContainer.new()
-	options.add_child(volumes)
+	var volumes := GridContainer.new()
+	volumes.columns = 2
+	audio.add_child(volumes)
 	for bus: String in ["Música","Ambiente","Efeitos"]:
-		label(volumes,bus,13)
+		label(volumes,bus,16)
 		var volume := HSlider.new()
-		volume.custom_minimum_size.x = 55
+		volume.custom_minimum_size.x = 180
 		volume.max_value = 1.0
 		volume.step = 0.05
 		volume.value = 0.8
@@ -272,9 +314,11 @@ func _ready() -> void:
 		volume.value_changed.connect(func(_v: float) -> void: settings_changed.emit())
 	var actions := HBoxContainer.new()
 	layout.add_child(actions)
-	button(options,"Alterar tecla de interação",func() -> void: remap_requested.emit())
+	key_button = button(audio,"Tecla de interação",func() -> void: remap_requested.emit())
 	button(actions,"Voltar à vila",toggle)
 	page.hide()
+	page.visibility_changed.connect(func() -> void:
+		for widget in [almanac,requests,tools,pouch,context]: widget.visible = not page.visible)
 
 	add_child(cover)
 	cover.theme = theme
@@ -285,7 +329,7 @@ func _ready() -> void:
 	cover.add_child(scene)
 	scene.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var enter: Button
-	var entries := ["Continuar","Receitas","Cooperativo","Opções","Sair"]
+	var entries := ["Continuar","Personagem","Cooperativo","Opções","Sair"]
 	for i in range(entries.size()):
 		var b := Button.new()
 		b.tooltip_text = entries[i]
@@ -303,7 +347,7 @@ func _ready() -> void:
 		focus.set_corner_radius_all(24)
 		for state in ["hover","pressed","focus"]: b.add_theme_stylebox_override(state,focus)
 		if i == 1:
-			b.text = "Receitas"
+			b.text = "Personagem"
 			b.add_theme_font_override("font",serif)
 			b.add_theme_font_size_override("font_size",26)
 			b.add_theme_color_override("font_color",INK)
@@ -315,10 +359,36 @@ func _ready() -> void:
 			if i == 4:
 				get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
 				get_tree().quit()
-			else: enter_village([-1,1,2,3][i]))
+			else:
+				sections.current_tab = 1 if i == 3 else 0
+				enter_village([-1,3,2,3][i]))
 	cover.visible = "--test" not in OS.get_cmdline_user_args()
 	base.visible = not cover.visible
 	if cover.visible: enter.grab_focus()
+
+func section(title: String) -> VBoxContainer:
+	var column := VBoxContainer.new()
+	column.name = title
+	column.add_theme_constant_override("separation",8)
+	sections.add_child(column)
+	return column
+
+func style_check(check: CheckButton) -> void:
+	for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_hover_pressed_color"]:
+		check.add_theme_color_override(key,Color.WHITE)
+
+func show_avatar(index: int) -> void:
+	avatar = clampi(index,0,NAMES.size()-1)
+	for i in cards.size(): cards[i].set_pressed_no_signal(i == avatar)
+	if tabs.current_tab == 3:
+		spread_art.texture = art.textures[PORTRAITS[avatar]]
+		spread_caption.text = NAMES[avatar]
+		if sections.current_tab == 1:
+			spread_art.texture = art.textures["home"]
+			spread_caption.text = "Exibição da vila"
+		elif sections.current_tab == 2:
+			spread_art.texture = art.textures["market"]
+			spread_caption.text = "Som e controles"
 
 func enter_village(tab: int) -> void:
 	cover.hide()

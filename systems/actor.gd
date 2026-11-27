@@ -7,7 +7,7 @@ var cargo: Sprite2D
 var step := 0.0
 var last_dir := Vector2.DOWN
 var child := false
-var female := false
+var appearance := 0
 var kid_index := 0
 var eating := false
 var activity := ""
@@ -33,6 +33,7 @@ func setup(atlas: RefCounted, little: bool = false) -> void:
 	add_child(cargo)
 
 func pose(motion: Vector2, delta: float, item: String) -> void:
+	var female := appearance == 1 or appearance == 3
 	var moving := motion.length() > 5
 	if moving:
 		last_dir = motion.normalized()
@@ -55,7 +56,11 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 		if eating and kid_index == 0: height = 51
 	elif item != "" and action_time <= 0:
 		key = ("load_f" if female else "load_m")+str(int(step)%4 if moving else 1)
-	if facing_key != key:
+	if not child and appearance >= 2:
+		var prefix := "rosa" if appearance == 3 else "davi"
+		if item != "" and action_time <= 0: prefix += "_load"
+		key = prefix + str(int(step)%4 if moving else 0)
+	if facing_key != key or not is_equal_approx(figure.scale.y * figure.texture.get_height(),height):
 		art.paint(figure,key,height)
 		facing_key = key
 	figure.flip_h = last_dir.x < -0.12
@@ -70,4 +75,7 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 	cargo.visible = item != "" and action_time <= 0
 	var frame_index := int(step)%4 if moving else 1
 	var rim: Vector2 = FEMALE_RIM[frame_index] if female else MALE_RIM[frame_index]
+	if appearance >= 2:
+		var basket_x := [5.6,5.5,10.8,9.6]
+		rim = Vector2(basket_x[frame_index if moving else 0],-55 if appearance == 2 else -54)
 	cargo.position = Vector2(-rim.x if figure.flip_h else rim.x,rim.y+3.5+figure.position.y)

@@ -64,6 +64,21 @@ func run() -> void:
 	village.hud.toggle()
 	village.hud.tabs.current_tab = 1
 	await snap("caderno")
+	village.hud.tabs.current_tab = 3
+	for i in 4:
+		village.hud.cards[i].pressed.emit()
+		if farmer.appearance != i or village.hud.spread_caption.text != village.hud.NAMES[i]: failed = true
+	await snap("personagens")
+	village.hud.sections.current_tab = 1
+	village.hud.fullscreen.button_pressed = true
+	await create_timer(0.3).timeout
+	if root.mode != Window.MODE_FULLSCREEN or not village.hud.resolution.disabled: failed = true
+	village.hud.fullscreen.button_pressed = false
+	village.hud.resolution.select(0)
+	village.hud.resolution.item_selected.emit(0)
+	await create_timer(0.3).timeout
+	if root.mode != Window.MODE_WINDOWED or root.size != Vector2i(960,540): failed = true
+	await snap("tela")
 	if village.farm.state.served != 1: failed = true
 	print("Percurso gráfico: ","FALHOU" if failed else "OK")
 	village.queue_free()

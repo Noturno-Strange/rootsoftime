@@ -26,10 +26,14 @@ func run() -> void:
 		while elapsed() < 24 and not game.farm.hands.values().has("Milho"): await process_frame
 		if not game.farm.hands.values().has("Milho"): return fail("ação remota")
 		await create_timer(0.8).timeout
+		for peer: int in game.actors:
+			if peer != 1 and game.actors[peer].appearance != 3: return fail("personagem remoto")
 		if game.farm.hands.values().count("Milho") != 1: return fail("colheita duplicada")
 		while game.actors.size() != 1 and elapsed() < 25: await process_frame
 		if game.farm.state.storage.count("Milho") != 1: return fail("carga na desconexão")
 	else:
+		game.hud.show_avatar(3)
+		game.apply_settings()
 		game.join_game("127.0.0.1")
 		while elapsed() < 22 and (not game.connected or game.farm.state.plots[0].stage != 4): await process_frame
 		if not game.connected or game.farm.state.plots[0].stage != 4: return fail("snapshot")

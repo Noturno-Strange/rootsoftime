@@ -922,5 +922,117 @@
   531,
   126,
   120
+ ],
+ "davi0": [
+  "neighbors",
+  3,
+  3,
+  92,
+  232
+ ],
+ "davi1": [
+  "neighbors",
+  163,
+  3,
+  112,
+  232
+ ],
+ "davi2": [
+  "neighbors",
+  323,
+  3,
+  103,
+  232
+ ],
+ "davi3": [
+  "neighbors",
+  483,
+  3,
+  82,
+  232
+ ],
+ "davi_load0": [
+  "neighbors",
+  3,
+  243,
+  82,
+  232
+ ],
+ "davi_load1": [
+  "neighbors",
+  163,
+  243,
+  112,
+  232
+ ],
+ "davi_load2": [
+  "neighbors",
+  323,
+  243,
+  103,
+  232
+ ],
+ "davi_load3": [
+  "neighbors",
+  483,
+  243,
+  89,
+  232
+ ],
+ "rosa0": [
+  "neighbors",
+  3,
+  483,
+  91,
+  232
+ ],
+ "rosa1": [
+  "neighbors",
+  163,
+  483,
+  118,
+  232
+ ],
+ "rosa2": [
+  "neighbors",
+  323,
+  483,
+  101,
+  232
+ ],
+ "rosa3": [
+  "neighbors",
+  483,
+  483,
+  90,
+  232
+ ],
+ "rosa_load0": [
+  "neighbors",
+  3,
+  723,
+  76,
+  232
+ ],
+ "rosa_load1": [
+  "neighbors",
+  163,
+  723,
+  120,
+  232
+ ],
+ "rosa_load2": [
+  "neighbors",
+  323,
+  723,
+  102,
+  232
+ ],
+ "rosa_load3": [
+  "neighbors",
+  483,
+  723,
+  95,
+  232
  ]
 }

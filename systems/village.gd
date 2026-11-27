@@ -109,7 +109,7 @@ func _ready() -> void:
 	hud.leave_requested.connect(leave_game)
 	hud.remap_requested.connect(func() -> void:
 		rebinding = true
-		hud.info.text = "Pressione a nova tecla de interação.")
+		hud.key_button.text = "Pressione uma tecla · Esc para cancelar")
 	hud.settings_changed.connect(apply_settings)
 	settings.load("user://opcoes.cfg")
 	interact_key = int(settings.get_value("input","interact",KEY_E))
@@ -117,7 +117,11 @@ func _ready() -> void:
 	hud.steady.set_pressed_no_signal(settings.get_value("camera","steady",false))
 	for bus: String in hud.levels:
 		hud.levels[bus].set_value_no_signal(settings.get_value("mix",bus,0.8))
-	hud.farmer.set_pressed_no_signal(settings.get_value("avatar","female",false))
+	hud.show_avatar(int(settings.get_value("avatar","index",int(settings.get_value("avatar","female",false)))))
+	hud.fullscreen.set_pressed_no_signal(settings.get_value("display","fullscreen",false))
+	hud.resolution.select(clampi(int(settings.get_value("display","resolution",1)),0,hud.SIZES.size()-1))
+	hud.display_changed.connect(apply_display)
+	apply_display()
 	apply_settings()
 	multiplayer.peer_connected.connect(peer_in)
 	multiplayer.peer_disconnected.connect(peer_out)
@@ -131,6 +135,23 @@ func _ready() -> void:
 	hud.status("Horta comunitária · aproxime-se de um canteiro")
 	land.refresh(farm)
 
+func apply_display() -> void:
+	var full: bool = hud.fullscreen.button_pressed
+	hud.resolution.disabled = full
+	if DisplayServer.get_name() != "headless":
+		var window := get_window()
+		window.mode = Window.MODE_FULLSCREEN if full else Window.MODE_WINDOWED
+		if not full:
+			var area := DisplayServer.screen_get_usable_rect(window.current_screen)
+			var size_wanted: Vector2i = hud.SIZES[hud.resolution.selected]
+			var room := Vector2(area.size - Vector2i(20,52))
+			var scale_factor := minf(1.0,minf(room.x/size_wanted.x,room.y/size_wanted.y))
+			window.size = Vector2i(Vector2(size_wanted)*scale_factor)
+			window.position = area.position + (area.size-window.size)/2
+	settings.set_value("display","fullscreen",full)
+	settings.set_value("display","resolution",hud.resolution.selected)
+	if not test_mode: settings.save("user://opcoes.cfg")
+
 func apply_settings() -> void:
 	camera.position_smoothing_enabled = not hud.steady.button_pressed
 	AudioServer.set_bus_mute(0,hud.quiet.button_pressed)
@@ -138,9 +159,10 @@ func apply_settings() -> void:
 		var level: float = hud.levels[bus].value
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus),linear_to_db(maxf(level,0.0001)))
 		settings.set_value("mix",bus,level)
-	settings.set_value("avatar","female",hud.farmer.button_pressed)
-	if connected: choose_farmer.rpc_id(1,hud.farmer.button_pressed)
-	elif actors.has(1): actors[1].female = hud.farmer.button_pressed
+	settings.set_value("avatar","index",hud.avatar)
+	hud.key_button.text = "Tecla de interação · " + OS.get_keycode_string(interact_key)
+	if connected: choose_farmer.rpc_id(1,hud.avatar)
+	elif actors.has(1): actors[1].appearance = hud.avatar
 	settings.set_value("camera","steady",hud.steady.button_pressed)
 	settings.set_value("audio","mute",hud.quiet.button_pressed)
 	settings.set_value("input","interact",interact_key)
@@ -152,7 +174,7 @@ func spawn(id: int) -> void:
 	land.display.add_child(actor)
 	actor.setup(art)
 	actor.position = Layout.SPAWN + Vector2(actors.size()*14,0)
-	actor.female = hud.farmer.button_pressed if id == 1 and not connected else false
+	actor.appearance = hud.avatar if id == 1 and not connected else 0
 	actors[id] = actor
 	directions[id] = Vector2.ZERO
 
@@ -212,7 +234,7 @@ func joined() -> void:
 	joining = false
 	connected = true
 	online = true
-	choose_farmer.rpc_id(1,hud.farmer.button_pressed)
+	choose_farmer.rpc_id(1,hud.avatar)
 	hud.net_status("Conectado à vila compartilhada",true)
 
 func leave_game() -> void:
@@ -261,7 +283,7 @@ func _input(event: InputEvent) -> void:
 			if event.keycode not in [KEY_ESCAPE,KEY_SHIFT,KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT]:
 				interact_key = event.keycode
 				apply_settings()
-			hud.info.text = "Interação: " + OS.get_keycode_string(interact_key)
+			hud.key_button.text = "Tecla de interação · " + OS.get_keycode_string(interact_key)
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_ESCAPE:
 			hud.toggle()
@@ -369,14 +391,14 @@ func receive(positions: Dictionary, styles: Dictionary, child_pos: PackedVector2
 	for id: int in actors.keys():
 		if not positions.has(id): remove_actor(id)
 	for peer: int in styles:
-		if actors.has(peer): actors[peer].female = styles[peer]
+		if actors.has(peer): actors[peer].appearance = styles[peer]
 	destinations = positions
 	child_targets = child_pos
 
 @rpc("any_peer","call_remote","reliable")
-func choose_farmer(female: bool) -> void:
+func choose_farmer(index: int) -> void:
 	var id := multiplayer.get_remote_sender_id()
-	if multiplayer.is_server() and actors.has(id): actors[id].female = female
+	if multiplayer.is_server() and actors.has(id) and index >= 0 and index < hud.NAMES.size(): actors[id].appearance = index
 
 func chat_submit(message: String) -> void:
 	if connected: send_chat.rpc_id(1,message)
@@ -452,7 +474,7 @@ func _physics_process(dt: float) -> void:
 				var styles := {}
 				for peer: int in actors:
 					positions[peer] = actors[peer].position
-					styles[peer] = actors[peer].female
+					styles[peer] = actors[peer].appearance
 				var spots := PackedVector2Array()
 				for kid in kids: spots.append(kid.position)
 				receive.rpc(positions,styles,spots,farm.state.time)
