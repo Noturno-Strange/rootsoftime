@@ -47,7 +47,14 @@ func run() -> void:
 	farmer.position = village.land.SITES.home[0]-Vector2(0,40)
 	await create_timer(0.7).timeout
 	await snap("interior")
+	farmer.position = village.land.SITES.school[0] + Vector2(0,70)
+	await create_timer(0.8).timeout
+	await snap("escola")
+	farmer.position = village.land.SITES.school[0] + Vector2(0,-30)
+	await create_timer(0.7).timeout
+	await snap("sala_de_aula")
 	village.hud.toggle()
+	village.hud.tabs.current_tab = 1
 	await snap("caderno")
 	if village.farm.state.served != 1: failed = true
 	print("Percurso gráfico: ","FALHOU" if failed else "OK")

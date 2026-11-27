@@ -19,7 +19,10 @@ var book: Label
 var address: LineEdit
 var pin: LineEdit
 var order_label: Label
-var cover := PanelContainer.new()
+var cover := Control.new()
+var spread_art := TextureRect.new()
+var spread_caption: Label
+var recipe_note: Label
 var tabs := TabContainer.new()
 var page: PanelContainer
 var host_button: Button
@@ -68,9 +71,21 @@ func button(parent: Control, value: String, callback: Callable) -> Button:
 	parent.add_child(b)
 	return b
 
+func parchment() -> StyleBoxTexture:
+	var paper := AtlasTexture.new()
+	paper.atlas = preload("res://assets/book.webp")
+	paper.region = Rect2(0,0,520,550)
+	var frame := StyleBoxTexture.new()
+	frame.texture = paper
+	for side in [SIDE_LEFT,SIDE_TOP,SIDE_RIGHT,SIDE_BOTTOM]:
+		frame.set_texture_margin(side,16)
+		frame.set_content_margin(side,18)
+	return frame
+
 func panel(parent: Control, dark: bool = false) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel",box(Color("#344433") if dark else CREAM,Color("#9f865e")))
+	if not dark: p.add_theme_stylebox_override("panel",parchment())
 	parent.add_child(p)
 	return p
 
@@ -79,19 +94,25 @@ func _ready() -> void:
 	var theme := Theme.new()
 	theme.default_font_size = 16
 	for state: String in ["normal","hover","pressed","focus"]:
-		theme.set_stylebox(state,"Button",box(Color("#465d45") if state=="normal" else Color("#687a51"),Color("#b39a69"),10))
+		theme.set_stylebox(state,"Button",box(Color("#904327") if state=="normal" else Color("#68402c"),Color("#b39a69"),10))
 	base.theme = theme
 	add_child(base)
 	base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var almanac := panel(base)
 	almanac.position = Vector2(24,20)
-	var column := VBoxContainer.new()
+	var column := HBoxContainer.new()
+	column.add_theme_constant_override("separation",18)
 	almanac.add_child(column)
-	label(column,"ROOTS OF TIME",12,Color("#68754c"))
-	date_label = label(column,"",24,INK,true)
-	objective = label(column,"",14)
-	order_label = label(column,"",13,Color("#657447"))
+	label(column,"Roots of Time",23,INK,true)
+	date_label = label(column,"",21,INK,true)
+	objective = label(column,"",15)
+	var requests := panel(base)
+	requests.position = Vector2(24,108)
+	var orders := VBoxContainer.new()
+	requests.add_child(orders)
+	label(orders,"Pedidos da vila",20,Color("#87371f"),true)
+	order_label = label(orders,"",15,INK)
 	var tools := HBoxContainer.new()
 	base.add_child(tools)
 	tools.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -124,15 +145,46 @@ func _ready() -> void:
 		l.add_theme_color_override("font_outline_color",Color("#403b2a"))
 		l.add_theme_constant_override("outline_size",5)
 	page = panel(base)
-	page.custom_minimum_size.x = 520
+	var binding := StyleBoxTexture.new()
+	binding.texture = preload("res://assets/book.webp")
+	for side in [SIDE_LEFT,SIDE_RIGHT]: binding.set_content_margin(side,45)
+	for side in [SIDE_TOP,SIDE_BOTTOM]: binding.set_content_margin(side,44)
+	page.add_theme_stylebox_override("panel",binding)
+	page.custom_minimum_size = Vector2(1090,510)
 	page.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	page.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	page.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var layout := VBoxContainer.new()
 	layout.add_theme_constant_override("separation",8)
-	page.add_child(layout)
+	var spread := HBoxContainer.new()
+	page.add_child(spread)
+	spread.add_theme_constant_override("separation",64)
+	spread.add_child(layout)
+	layout.custom_minimum_size.x = 458
+	var illustration := VBoxContainer.new()
+	illustration.alignment = BoxContainer.ALIGNMENT_CENTER
+	illustration.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spread.add_child(illustration)
+	spread_art.custom_minimum_size = Vector2(230,215)
+	spread_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	spread_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	illustration.add_child(spread_art)
+	spread_caption = label(illustration,"",24,INK,true)
+	spread_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	spread_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	recipe_note = label(illustration,"",17,INK)
+	recipe_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	recipe_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	recipe_note.hide()
+	tabs.tab_changed.connect(func(i: int) -> void:
+		recipe_note.visible = i == 1
+		if i == 1: recipe_note.text = "Leve milho ao moinho. Retire o fubá e cozinhe no fogão."
+		spread_art.texture = art.textures[["home","angu","market","farmer"][i]]
+		spread_caption.text = ["A vila","Angu","Feira comunitária","Agricultor"][i])
+	spread_art.texture = art.textures["home"]
+	spread_caption.text = "A vila"
 	label(layout,"Caderno da vila",32,INK,true)
-	tabs.custom_minimum_size = Vector2(540,300)
+	tabs.custom_minimum_size = Vector2(450,300)
 	layout.add_child(tabs)
 	var village_tab := VBoxContainer.new()
 	village_tab.name = "Vila"
@@ -147,19 +199,23 @@ func _ready() -> void:
 	options.name = "Opções"
 	tabs.add_child(options)
 	for tab in [village_tab,cookbook,session,options]: tab.add_theme_constant_override("separation",8)
-	tabs.add_theme_stylebox_override("panel",box(Color("#f6ecd9"),Color("#c0ac88")))
+	tabs.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
 	label(village_tab,"Do canteiro à mesa",23,INK,true)
 	note = label(village_tab,"",16)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	book = label(village_tab,"",15)
 	book.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label(cookbook,"Tradições da cozinha",23,INK,true)
-	var plates := HBoxContainer.new()
+	var plates := GridContainer.new()
+	plates.columns = 3
 	cookbook.add_child(plates)
-	var recipe_note := label(cookbook,"",18,INK,true)
 	recipe_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var recipes := {"Angu":["angu","Leve milho ao moinho. Retire o fubá e cozinhe no fogão."],"Pamonha":["tamale","Rale o milho. Leve a massa de milho ao forno."],"Beiju":["beiju","Lave, rale e prense a mandioca. Peneire a massa e leve à chapa."],"Broa":["bread","Junte fubá e ovos na bancada. Asse a massa de broa no forno."],"Baião":["meal","Prepare arroz e feijão no fogão. Misture na bancada e volte ao fogo."]}
 	for dish: String in recipes:
-		var select := button(plates,dish,func() -> void: recipe_note.text = dish+"  ·  "+recipes[dish][1])
+		var select := button(plates,dish,func() -> void: recipe_note.text = recipes[dish][1]; spread_art.texture = art.textures[recipes[dish][0]]; spread_caption.text = dish)
+		select.add_theme_stylebox_override("normal",box(Color("#f8e1b1"),Color("#b38a52"),8))
+		select.add_theme_color_override("font_color",INK)
+		select.add_theme_font_override("font",serif)
 		select.icon = art.textures[recipes[dish][0]]
 		select.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		select.add_theme_constant_override("icon_max_width",72)
@@ -222,24 +278,44 @@ func _ready() -> void:
 
 	add_child(cover)
 	cover.theme = theme
-	cover.add_theme_stylebox_override("panel",box(CREAM,Color("#855531"),24))
-	cover.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	cover.offset_left = 50
-	cover.grow_vertical = Control.GROW_DIRECTION_BOTH
-	var menu := VBoxContainer.new()
-	menu.add_theme_constant_override("separation",10)
-	cover.add_child(menu)
-	var crest := TextureRect.new()
-	crest.texture = art.textures["mango"]
-	crest.custom_minimum_size = Vector2(160,84)
-	crest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	crest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	menu.add_child(crest)
-	label(menu,"Roots of Time",39,INK,true)
-	var enter := button(menu,"Entrar na vila",func() -> void: enter_village(-1))
-	button(menu,"Cooperativo",func() -> void: enter_village(2))
-	button(menu,"Opções",func() -> void: enter_village(3))
-	button(menu,"Sair",func() -> void: get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST); get_tree().quit())
+	cover.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var scene := TextureRect.new()
+	scene.texture = preload("res://assets/title.webp")
+	scene.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cover.add_child(scene)
+	scene.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var enter: Button
+	var entries := ["Continuar","Receitas","Cooperativo","Opções","Sair"]
+	for i in range(entries.size()):
+		var b := Button.new()
+		b.tooltip_text = entries[i]
+		b.accessibility_name = entries[i]
+		scene.add_child(b)
+		b.anchor_left = 0.058
+		b.anchor_right = 0.277
+		b.anchor_top = [0.392,0.476,0.555,0.636,0.717][i]
+		b.anchor_bottom = b.anchor_top+0.075
+		var blank := StyleBoxFlat.new()
+		blank.bg_color = Color.TRANSPARENT
+		b.add_theme_stylebox_override("normal",blank)
+		var focus := blank.duplicate() as StyleBoxFlat
+		focus.bg_color = Color(1,0.87,0.53,0.16)
+		focus.set_corner_radius_all(24)
+		for state in ["hover","pressed","focus"]: b.add_theme_stylebox_override(state,focus)
+		if i == 1:
+			b.text = "Receitas"
+			b.add_theme_font_override("font",serif)
+			b.add_theme_font_size_override("font_size",26)
+			b.add_theme_color_override("font_color",INK)
+			b.add_theme_color_override("font_hover_color",INK)
+			b.add_theme_color_override("font_focus_color",INK)
+
+		if i == 0: enter = b
+		b.pressed.connect(func() -> void:
+			if i == 4:
+				get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+				get_tree().quit()
+			else: enter_village([-1,1,2,3][i]))
 	cover.visible = "--test" not in OS.get_cmdline_user_args()
 	base.visible = not cover.visible
 	if cover.visible: enter.grab_focus()

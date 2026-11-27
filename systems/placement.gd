@@ -16,6 +16,8 @@ const CHILD_HOME := Vector2(400,548)
 const CHILD_SCHOOL := Vector2(1245,336)
 const BOUNDS := Rect2(90,175,1360,755)
 var roofs: Dictionary = {}
+var scenery_reservations: Array[Rect2] = []
+var doorways: Dictionary = {}
 var interiors: Dictionary = {}
 var anchors: Dictionary = {}
 var visuals: Dictionary = {}
@@ -59,7 +61,15 @@ func building(key: String, d: Array) -> Node2D:
 	var room: Sprite2D = art.sprite("house_room" if key == "home" else "school_room",width*0.66)
 	room.position.y = 135
 	inside.add_child(room)
-	for piece: Array in [[Vector2(0,-119),width/2,10],[Vector2(-width/2+6,0),6,119],[Vector2(width/2-6,0),6,119]]:
+	var extent := width/2-14
+	var door := -width*0.14 if key == "school" else -width*0.035
+	doorways[key] = door
+	var opening := 27.0
+	var left := door-opening+extent
+	var right := extent-door-opening
+	var walls := [[Vector2(0,-65),extent,68],[Vector2(-extent+5,0),5,66],[Vector2(extent-5,0),5,66],
+		[Vector2(-extent+left/2,0),left/2,12],[Vector2(extent-right/2,0),right/2,12]]
+	for piece: Array in walls:
 		var wall := Node2D.new()
 		wall.position = center + piece[0]
 		display.add_child(wall)
@@ -72,7 +82,8 @@ func building(key: String, d: Array) -> Node2D:
 func reveal_rooms(viewer: Vector2, delta: float) -> void:
 	for key: String in roofs:
 		var relative: Vector2 = viewer - SITES[key][0]
-		var inside := absf(relative.x) < float(SITES[key][3])-7 and relative.y < 12 and relative.y > -130
+		var doorway := absf(relative.x-float(doorways[key])) < 27 and relative.y <= 10
+		var inside := absf(relative.x) < float(SITES[key][3])-14 and relative.y >= -67 and (relative.y < -7 or doorway)
 		var roof: Node2D = roofs[key]
 		roof.modulate.a = move_toward(roof.modulate.a,0.0 if inside else 1.0,delta*5)
 		interiors[key].visible = roof.modulate.a < 0.999
@@ -93,7 +104,10 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 			visuals[key] = building(key,d)
 		else:
 			visuals[key] = place(d[1],d[0],d[2],d[3])
-		anchors[key] = d[0] + Vector2(0,12)
+		anchors[key] = d[0] + Vector2(doorways.get(key,0),12)
+		var tex: Texture2D = art.textures[d[1]]
+		var size := tex.get_size()*float(d[2])/tex.get_height()
+		scenery_reservations.append(Rect2(d[0]-Vector2(size.x/2,size.y),size).grow(5))
 	for i in range(8):
 		var pos := Vector2(460 + (i%4)*78,646 + floori(i/4.0)*83)
 		anchors["plot%d" % i] = pos
@@ -112,13 +126,21 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	rng.seed = 1942
 	for i in range(18):
 		var pos := Vector2(i*94+rng.randf_range(-22,22),rng.randf_range(142,206))
-		place("banana" if i%3==0 else "mango",pos,rng.randf_range(145,225),18)
+		plant_tree("banana" if i%3==0 else "mango",pos,rng.randf_range(145,225),18)
 	for side in [70,1478]:
 		for i in range(6):
-			place("mango" if i%2==0 else "banana",Vector2(side+rng.randf_range(-20,20),330+i*120),rng.randf_range(138,199),15)
+			plant_tree("mango" if i%2==0 else "banana",Vector2(side+rng.randf_range(-20,20),330+i*120),rng.randf_range(138,199),15)
 	for pos in [Vector2(230,455),Vector2(1113,370),Vector2(1090,833),Vector2(278,809)]:
-		place("banana",pos,113,12)
+		plant_tree("banana",pos,113,12)
 
+
+func plant_tree(key: String, pos: Vector2, height: float, trunk: float) -> void:
+	var tex: Texture2D = art.textures[key]
+	var size := tex.get_size()*height/tex.get_height()
+	var canopy := Rect2(pos-Vector2(size.x/2,size.y),size)
+	for reserved in scenery_reservations:
+		if canopy.intersects(reserved): return
+	place(key,pos,height,trunk)
 
 func nearest(pos: Vector2) -> String:
 	var best := 68.0

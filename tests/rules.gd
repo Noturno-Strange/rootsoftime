@@ -20,6 +20,15 @@ func run() -> void:
 	check(village.kids.size() == 4,"Quatro crianças")
 	for goal: Vector2 in village.play_points:
 		check(not village.paths.route(village.land.CHILD_HOME,goal).is_empty(),"Trilha de brincadeira")
+	var player: CharacterBody2D = village.actors[1]
+	for name: String in ["home","school"]:
+		var center: Vector2 = village.land.SITES[name][0]
+		var door: float = village.land.doorways[name]
+		for side in [-78,78]:
+			var start := Transform2D(0,center+Vector2(side,30))
+			check(player.test_move(start,Vector2(0,-48)),"Parede frontal "+name)
+		check(not player.test_move(Transform2D(0,center+Vector2(door,30)),Vector2(0,-60)),"Porta livre "+name)
+		check(player.test_move(Transform2D(0,center+Vector2(door,-31)),Vector2(0,-65)),"Limite do piso "+name)
 	var farm: Farm = village.farm
 	for k: String in village.land.anchors:
 		var path: PackedVector2Array = village.paths.route(village.land.SPAWN,village.land.anchors[k])
