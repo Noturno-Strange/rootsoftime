@@ -23,8 +23,10 @@ var doorways: Dictionary = {}
 var interiors: Dictionary = {}
 var anchors: Dictionary = {}
 var visuals: Dictionary = {}
+var seed_groups: Array[Node2D] = []
 var plants: Array[Sprite2D] = []
 var beds: Array[Sprite2D] = []
+var soil_layer := Node2D.new()
 var display: Node2D
 var art: RefCounted
 
@@ -51,6 +53,10 @@ func place(key: String, pos: Vector2, height: float, solid: float = 0) -> Node2D
 		foundation.offset = Vector2(-tex.get_width()*0.5-16,-tex.get_height()-16)
 		foundation.scale = Vector2.ONE * height / tex.get_height()
 		node.add_child(foundation)
+	elif art.textures.has(key+"_contact"):
+		var shade: Sprite2D = art.sprite(key+"_contact",height*0.5)
+		shade.position = pos + Vector2(0,height*0.16)
+		soil_layer.add_child(shade)
 	else:
 		node.add_child(art.ground_shadow(sprite_width*0.98,maxf(8,height*0.25)))
 	node.add_child(art.sprite(key,height))
@@ -109,6 +115,13 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	ground.centered = false
 	ground.scale = Vector2(1536,1024)/ground.texture.get_size()
 	root.add_child(ground)
+	root.add_child(soil_layer)
+	var worked_ground := Sprite2D.new()
+	worked_ground.texture = preload("res://assets/garden_ground.webp")
+	worked_ground.centered = false
+	worked_ground.position = Vector2(390,598)
+	worked_ground.scale = Vector2.ONE*0.5
+	soil_layer.add_child(worked_ground)
 	display = Node2D.new()
 	display.y_sort_enabled = true
 	root.add_child(display)
@@ -143,13 +156,14 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		var base := Node2D.new()
 		base.position = pos
 		display.add_child(base)
-		var bed: Sprite2D = art.sprite("dry_bed",25)
-		bed.flip_h = i%3 == 1
-		base.add_child(bed)
+		var bed: Sprite2D = art.sprite("dry_bed",36)
+		bed.position = pos + Vector2(0,5)
+		soil_layer.add_child(bed)
 		obstacle(base,32,24)
 		var seeds := Node2D.new()
 		seeds.name = "Seeds"
 		base.add_child(seeds)
+		seed_groups.append(seeds)
 		for j in 6:
 			var grain := Polygon2D.new()
 			grain.polygon = PackedVector2Array([Vector2(-2,0),Vector2(0,-1.5),Vector2(2,0),Vector2(0,1)])
@@ -197,8 +211,10 @@ func refresh(farm: RefCounted) -> void:
 		var p: Dictionary = farm.state.plots[i]
 		var stage := int(p.stage)
 		plants[i].visible = stage >= 2
-		beds[i].texture = art.textures[["dry_bed","tilled_bed","tilled_bed","wet_bed","tilled_bed"][stage]]
-		beds[i].get_parent().get_node("Seeds").visible = stage == 2
+		var surface: String = ["dry_bed","tilled_bed","tilled_bed","wet_bed","tilled_bed"][stage]
+		var variation := (i + i/4) % 4
+		beds[i].texture = art.textures[surface + (str(variation) if variation > 0 else "")]
+		seed_groups[i].visible = stage == 2
 		if stage < 2: continue
 		var key: String = ["corn","cassava","rice","bean"][int(p.crop)]
 		var height := 51.0

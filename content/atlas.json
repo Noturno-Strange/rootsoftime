@@ -1099,25 +1099,25 @@
   353
  ],
  "dry_bed": [
-  "garden",
+  "earth",
   4,
-  520,
-  500,
-  180
+  4,
+  328,
+  132
  ],
  "tilled_bed": [
-  "garden",
-  516,
-  520,
-  500,
-  180
+  "earth",
+  4,
+  144,
+  328,
+  132
  ],
  "wet_bed": [
-  "garden",
-  1028,
-  520,
-  500,
-  180
+  "earth",
+  4,
+  284,
+  328,
+  132
  ],
  "teacher": [
   "teacher",
@@ -1125,5 +1125,194 @@
   0,
   181,
   512
+ ],
+ "dry_bed1": [
+  "earth",
+  340,
+  4,
+  328,
+  132
+ ],
+ "tilled_bed1": [
+  "earth",
+  340,
+  144,
+  328,
+  132
+ ],
+ "wet_bed1": [
+  "earth",
+  340,
+  284,
+  328,
+  132
+ ],
+ "dry_bed2": [
+  "earth",
+  676,
+  4,
+  328,
+  132
+ ],
+ "tilled_bed2": [
+  "earth",
+  676,
+  144,
+  328,
+  132
+ ],
+ "wet_bed2": [
+  "earth",
+  676,
+  284,
+  328,
+  132
+ ],
+ "dry_bed3": [
+  "earth",
+  1012,
+  4,
+  328,
+  132
+ ],
+ "tilled_bed3": [
+  "earth",
+  1012,
+  144,
+  328,
+  132
+ ],
+ "wet_bed3": [
+  "earth",
+  1012,
+  284,
+  328,
+  132
+ ],
+ "clay_oven_contact": [
+  "contacts",
+  4,
+  4,
+  480,
+  100
+ ],
+ "iron_griddle_contact": [
+  "contacts",
+  492,
+  4,
+  480,
+  100
+ ],
+ "shared_table_contact": [
+  "contacts",
+  980,
+  4,
+  480,
+  100
+ ],
+ "kneading_bench_contact": [
+  "contacts",
+  1468,
+  4,
+  480,
+  100
+ ],
+ "stove_contact": [
+  "contacts",
+  4,
+  112,
+  480,
+  100
+ ],
+ "chest_contact": [
+  "contacts",
+  492,
+  112,
+  480,
+  100
+ ],
+ "well_contact": [
+  "contacts",
+  980,
+  112,
+  480,
+  100
+ ],
+ "wash_contact": [
+  "contacts",
+  1468,
+  112,
+  480,
+  100
+ ],
+ "grater_contact": [
+  "contacts",
+  4,
+  220,
+  480,
+  100
+ ],
+ "table_contact": [
+  "contacts",
+  492,
+  220,
+  480,
+  100
+ ],
+ "press_contact": [
+  "contacts",
+  980,
+  220,
+  480,
+  100
+ ],
+ "sieve_contact": [
+  "contacts",
+  1468,
+  220,
+  480,
+  100
+ ],
+ "market_contact": [
+  "contacts",
+  4,
+  328,
+  480,
+  100
+ ],
+ "warehouse_contact": [
+  "contacts",
+  492,
+  328,
+  480,
+  100
+ ],
+ "mill_contact": [
+  "contacts",
+  980,
+  328,
+  480,
+  100
+ ],
+ "geranium_contact": [
+  "contacts",
+  1468,
+  328,
+  480,
+  100
+ ],
+ "rail_contact": [
+  "contacts",
+  4,
+  436,
+  480,
+  100
+ ],
+ "granite_contact": [
+  "contacts",
+  492,
+  436,
+  480,
+  100
  ]
 }
