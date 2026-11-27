@@ -20,12 +20,12 @@ func run() -> void:
 	farmer.position = corn+Vector2(0,22)
 	for i in range(3):
 		await create_timer(0.3).timeout
-		if not village.perform(1,"plot0"): failed = true
+		if not village.perform(1,"plot0",i): failed = true
 	village.farm.tick(16)
 	village.land.refresh(village.farm)
 	await create_timer(0.45).timeout
 	await snap("horta")
-	village.perform(1,"plot0")
+	village.perform(1,"plot0",3)
 	await create_timer(0.35).timeout
 	if village.farm.hands.get(1) != "Milho": failed = true
 	farmer.position = village.land.anchors["tray"]

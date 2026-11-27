@@ -37,7 +37,7 @@ func run() -> void:
 		game.join_game("127.0.0.1")
 		while elapsed() < 22 and (not game.connected or game.farm.state.plots[0].stage != 4): await process_frame
 		if not game.connected or game.farm.state.plots[0].stage != 4: return fail("snapshot")
-		game.request_action.rpc_id(1,"plot0",game.farm.prompt(game.multiplayer.get_unique_id(),"plot0"))
+		game.request_action.rpc_id(1,"plot0",game.farm.prompt(game.multiplayer.get_unique_id(),"plot0"),3)
 		await create_timer(1.7).timeout
 		if not game.farm.hands.values().has("Milho"): return fail("sincronização")
 		game.leave_game()

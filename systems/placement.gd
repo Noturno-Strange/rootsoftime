@@ -109,7 +109,7 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		var size := tex.get_size()*float(d[2])/tex.get_height()
 		scenery_reservations.append(Rect2(d[0]-Vector2(size.x/2,size.y),size).grow(5))
 	for i in range(8):
-		var pos := Vector2(460 + (i%4)*78,646 + floori(i/4.0)*83)
+		var pos := Vector2(460 + (i%4)*90,646 + floori(i/4.0)*83)
 		anchors["plot%d" % i] = pos
 		var base := Node2D.new()
 		base.position = pos
@@ -117,6 +117,16 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		var bed: Sprite2D = art.sprite("soil",37)
 		bed.modulate = Color(0.78,0.77,0.65)
 		base.add_child(bed)
+		obstacle(base,32,24)
+		var seeds := Node2D.new()
+		seeds.name = "Seeds"
+		base.add_child(seeds)
+		for j in 6:
+			var grain := Polygon2D.new()
+			grain.polygon = PackedVector2Array([Vector2(-2,0),Vector2(0,-1.5),Vector2(2,0),Vector2(0,1)])
+			grain.color = Color("#edc378")
+			grain.position = Vector2(-20+(j%3)*18,-9-(j/3)*9)
+			seeds.add_child(grain)
 		beds.append(bed)
 		var plant: Sprite2D = art.sprite("seedling",16)
 		plant.position.y = -9
@@ -157,7 +167,8 @@ func refresh(farm: RefCounted) -> void:
 		var p: Dictionary = farm.state.plots[i]
 		var stage := int(p.stage)
 		plants[i].visible = stage >= 2
-		beds[i].modulate = [Color(0.64,0.68,0.51),Color.WHITE,Color.WHITE,Color(0.74,0.71,0.64),Color.WHITE][stage]
+		beds[i].modulate = [Color(1.12,1.05,0.83),Color(0.90,0.75,0.58),Color(0.90,0.75,0.58),Color(0.61,0.58,0.51),Color.WHITE][stage]
+		beds[i].get_parent().get_node("Seeds").visible = stage == 2
 		if stage < 2: continue
 		var key: String = ["corn","cassava","rice","bean"][int(p.crop)]
 		var height := 51.0

@@ -6,6 +6,19 @@ signal leave_requested
 signal settings_changed
 signal chat_requested(message: String)
 signal remap_requested
+const Farm = preload("res://systems/farm.gd")
+const TOOL_NAMES := ["Enxada","Sementes","Regador","Cesto"]
+var tool_id := 0
+var kit := PopupMenu.new()
+var kit_button: Button
+var catalog: Array[String] = []
+var methods := {}
+var current_recipe := 0
+var page_text: Label
+var back_page: Button
+var next_page: Button
+var dishes: Array[Button] = []
+var destination: Label
 var art := preload("res://systems/art.gd").new()
 var carry_icon := TextureRect.new()
 var date_label: Label
@@ -125,13 +138,21 @@ func _ready() -> void:
 	var orders := VBoxContainer.new()
 	requests.add_child(orders)
 	label(orders,"Pedidos da vila",20,Color("#87371f"),true)
-	order_label = label(orders,"",15,INK)
+	order_label = label(orders,"",17,INK)
+	destination = label(orders,"",16,Color("#435626"))
 	var tools := HBoxContainer.new()
 	base.add_child(tools)
 	tools.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	tools.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	tools.offset_right = -24
 	tools.offset_top = 20
+	kit_button = button(tools,"Enxada   [B]",open_tools)
+	base.add_child(kit)
+	kit.title = "Baú de ferramentas"
+	kit.add_separator("Baú de ferramentas")
+	for i in TOOL_NAMES.size():
+		kit.add_item("%d   %s" % [i+1,TOOL_NAMES[i]],i,KEY_1+i)
+	kit.id_pressed.connect(equip_tool)
 	button(tools,"Caderno   Esc",toggle)
 	var pouch := panel(base,true)
 	pouch.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
@@ -194,6 +215,7 @@ func _ready() -> void:
 		if i == 1: recipe_note.text = "Leve milho ao moinho. Retire o fubá e cozinhe no fogão."
 		spread_art.texture = art.textures[["home","angu","market","farmer"][i]]
 		spread_caption.text = ["A vila","Angu","Feira comunitária","Personagem"][i]
+		if i == 1: show_recipe(current_recipe)
 		if i == 3: show_avatar(avatar))
 	spread_art.texture = art.textures["home"]
 	spread_caption.text = "A vila"
@@ -220,21 +242,30 @@ func _ready() -> void:
 	book = label(village_tab,"",15)
 	book.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label(cookbook,"Tradições da cozinha",23,INK,true)
+	var farm := Farm.new()
+	var stations := {"mill":"Moinho","press":"Prensa","stove":"Fogão","wash":"Tanque","grater":"Ralador","sieve":"Peneira","oven":"Forno","pan":"Chapa"}
+	catalog.assign(Farm.MEALS)
+	for station: String in farm.recipes:
+		for ingredient: String in farm.recipes[station]:
+			var product: String = farm.recipes[station][ingredient][0]
+			methods[product] = [stations[station],[ingredient]]
+	for pair: String in Farm.BLENDS:
+		methods[Farm.BLENDS[pair]] = ["Bancada",pair.split("|")]
+	for product: String in methods:
+		if not catalog.has(product): catalog.append(product)
 	var plates := GridContainer.new()
-	plates.columns = 3
+	plates.columns = 2
 	cookbook.add_child(plates)
-	recipe_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var recipes := {"Angu":["angu","Leve milho ao moinho. Retire o fubá e cozinhe no fogão."],"Pamonha":["tamale","Rale o milho. Leve a massa de milho ao forno."],"Beiju":["beiju","Lave, rale e prense a mandioca. Peneire a massa e leve à chapa."],"Broa":["bread","Junte fubá e ovos na bancada. Asse a massa de broa no forno."],"Baião":["meal","Prepare arroz e feijão no fogão. Misture na bancada e volte ao fogo."]}
-	for dish: String in recipes:
-		var select := button(plates,dish,func() -> void: recipe_note.text = recipes[dish][1]; spread_art.texture = art.textures[recipes[dish][0]]; spread_caption.text = dish)
-		select.add_theme_stylebox_override("normal",box(Color("#f8e1b1"),Color("#b38a52"),8))
-		select.add_theme_color_override("font_color",INK)
-		select.add_theme_font_override("font",serif)
-		select.icon = art.textures[recipes[dish][0]]
-		select.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		select.add_theme_constant_override("icon_max_width",72)
-	recipe_note.text = "Angu  ·  "+recipes.Angu[1]
-	label(cookbook,"Na chapa também se preparam ovos e leite. Para o creme de manga,\nmisture leite e manga na bancada e leve ao fogão.",15)
+	for i in 4:
+		var card := button(plates,"",func() -> void: show_recipe((current_recipe/4)*4+i))
+		card.custom_minimum_size = Vector2(210,50)
+		card.add_theme_constant_override("icon_max_width",40)
+		dishes.append(card)
+	var pages := HBoxContainer.new()
+	cookbook.add_child(pages)
+	back_page = button(pages,"‹ Anterior",func() -> void: show_recipe((current_recipe/4-1)*4))
+	page_text = label(pages,"",17)
+	next_page = button(pages,"Próxima ›",func() -> void: show_recipe((current_recipe/4+1)*4))
 	options.add_child(sections)
 	sections.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
 	var cast := section("Personagem")
@@ -415,6 +446,8 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	carry_icon.texture = art.textures.get(farm.ICON.get(item,"meal") if item != "" else "basket")
 	carry.text = "Cesto  ·  " + (item if item != "" else "vazio")
 	hint.text = "["+key+"]  "+farm.prompt(me,target) if target != "" else ""
+	var needed: int = farm.required_tool(target)
+	if needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target)]
 	if Time.get_ticks_msec() > message_until: news.text = ""
 	note.text = "WASD ou setas para andar · Shift para correr · Roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nSirva as crianças na mesa ou entregue o prato na feira."
 	book.text = "Receitas descobertas: %s\nRefeições servidas: %d   ·   Entregas: %d   ·   Idas à escola: %d" % [", ".join(s.book) if not s.book.is_empty() else "—",s.served,s.sales,s.trips]
@@ -428,3 +461,39 @@ func net_status(message: String, in_session: bool) -> void:
 	join_button.visible = not in_session
 	address.visible = not in_session
 	leave_button.visible = in_session
+
+func open_tools() -> void:
+	kit.reset_size()
+	kit.popup_centered()
+	kit.set_focused_item(tool_id+1)
+
+func equip_tool(index: int) -> void:
+	tool_id = index
+	kit_button.text = "%s   [B]" % TOOL_NAMES[index]
+	status("%s em uso." % TOOL_NAMES[index])
+
+func show_recipe(index: int) -> void:
+	current_recipe = clampi(index,0,catalog.size()-1)
+	var leaf := current_recipe/4
+	for i in dishes.size():
+		var n := leaf*4+i
+		dishes[i].visible = n < catalog.size()
+		if dishes[i].visible:
+			dishes[i].text = catalog[n]
+			dishes[i].icon = art.textures[Farm.ICON[catalog[n]]]
+			dishes[i].add_theme_stylebox_override("normal",box(Color("#39563a") if n == current_recipe else Color("#874628"),Color("#ba9660"),8))
+	page_text.text = "%d / %d" % [leaf+1,ceili(catalog.size()/4.0)]
+	back_page.disabled = leaf == 0
+	next_page.disabled = (leaf+1)*4 >= catalog.size()
+	var product := catalog[current_recipe]
+	spread_art.texture = art.textures[Farm.ICON[product]]
+	spread_caption.text = product
+	recipe_note.text = "\n".join(recipe_steps(product))
+
+func recipe_steps(product: String) -> PackedStringArray:
+	var lines := PackedStringArray()
+	if methods.has(product):
+		var entry: Array = methods[product]
+		for ingredient: String in entry[1]: lines.append_array(recipe_steps(ingredient))
+		lines.append("%s · %s → %s" % [entry[0]," + ".join(entry[1]),product])
+	return lines

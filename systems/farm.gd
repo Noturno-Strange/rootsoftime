@@ -213,3 +213,9 @@ func prompt(id: int, target: String) -> String:
 		"storage": return "Guardar " + hand if hand != "" else "Depósito · %d itens" % state.storage.size()
 		"market": return "Restaurar banco · 15 moedas" if hand == "" and not state.upgrade else "Entregar prato na feira"
 	return ""
+
+func required_tool(target: String) -> int:
+	if not target.begins_with("plot"): return -1
+	var index := target.trim_prefix("plot").to_int()
+	if index < 0 or index >= state.plots.size(): return -1
+	return [0,1,2,-1,3][int(state.plots[index].stage)]

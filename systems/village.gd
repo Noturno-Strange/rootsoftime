@@ -26,6 +26,7 @@ var play_points := [Vector2(520,585),Vector2(830,545),Vector2(1150,445),Vector2(
 var tint := CanvasModulate.new()
 var paths := preload("res://systems/paths.gd").new()
 var target := ""
+var goal_pin := Label.new()
 var highlight := Line2D.new()
 var interact_key := KEY_E
 var rebinding := false
@@ -94,6 +95,12 @@ func _ready() -> void:
 	var ear := AudioListener2D.new()
 	camera.add_child(ear)
 	ear.make_current()
+	hud.base.add_child(goal_pin)
+	goal_pin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	goal_pin.add_theme_font_size_override("font_size",28)
+	goal_pin.add_theme_color_override("font_color",Color("#ffda67"))
+	goal_pin.add_theme_color_override("font_outline_color",Color("#482717"))
+	goal_pin.add_theme_constant_override("outline_size",6)
 	add_child(highlight)
 	highlight.width = 2.5
 	highlight.default_color = Color("#fff0b2")
@@ -280,10 +287,13 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if rebinding:
 			rebinding = false
-			if event.keycode not in [KEY_ESCAPE,KEY_SHIFT,KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT]:
+			if event.keycode not in [KEY_B,KEY_ESCAPE,KEY_SHIFT,KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT]:
 				interact_key = event.keycode
 				apply_settings()
 			hud.key_button.text = "Tecla de interação · " + OS.get_keycode_string(interact_key)
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_B and not hud.page.visible:
+			hud.open_tools()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_ESCAPE:
 			hud.toggle()
@@ -303,17 +313,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func use_target() -> void:
 	if joining or target.is_empty(): return
-	if connected: request_action.rpc_id(1,target,farm.prompt(multiplayer.get_unique_id(),target))
-	else: perform(1,target)
+	if connected: request_action.rpc_id(1,target,farm.prompt(multiplayer.get_unique_id(),target),hud.tool_id)
+	else: perform(1,target,hud.tool_id)
 
 @rpc("any_peer","call_remote","reliable")
-func request_action(key: String, expected_action: String) -> void:
+func request_action(key: String, expected_action: String, tool: int) -> void:
 	if not multiplayer.is_server() or not land.anchors.has(key): return
 	var id := multiplayer.get_remote_sender_id()
-	if farm.prompt(id,key) == expected_action: perform(id,key)
+	if farm.prompt(id,key) == expected_action: perform(id,key,tool)
 
-func perform(id: int, key: String) -> bool:
+func perform(id: int, key: String, tool: int = 0) -> bool:
 	if not actors.has(id) or not land.anchors.has(key): return false
+	var needed := farm.required_tool(key)
+	if needed >= 0 and tool != needed: return false
 	if actors[id].position.distance_to(land.anchors[key]) > 68: return false
 	if Time.get_ticks_msec() - int(last_actions.get(id,-1000)) < 220: return false
 	last_actions[id] = Time.get_ticks_msec()
@@ -426,7 +438,7 @@ func show_chat(line: String) -> void:
 	if not hud.page.visible: hud.status(line)
 
 func local_direction() -> Vector2:
-	if hud.cover.visible or hud.page.visible or not get_window().has_focus() and not test_mode: return Vector2.ZERO
+	if hud.cover.visible or hud.kit.visible or hud.page.visible or not get_window().has_focus() and not test_mode: return Vector2.ZERO
 	var left := Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT)
 	var right := Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT)
 	var up := Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP)
@@ -499,6 +511,7 @@ func _physics_process(dt: float) -> void:
 	target = land.nearest(viewer)
 	highlight.visible = target != "" and not hud.page.visible
 	if highlight.visible: highlight.position = land.anchors[target]
+	update_goal(id)
 	hud.refresh(farm,id,target,OS.get_keycode_string(interact_key))
 	bench.visible = farm.state.upgrade
 	for i in range(tray_items.size()):
@@ -559,3 +572,20 @@ func update_escort(dt: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and is_node_ready() and not connected and not joining and not test_mode:
 		Save.write(farm)
+
+func update_goal(id: int) -> void:
+	var goal := "market"
+	var caption := "Entregar na feira"
+	if farm.state.escort == id:
+		goal = "home" if farm.state.family == "back" else "school"
+		caption = "Voltar para casa" if goal == "home" else "Levar à escola"
+	elif farm.state.family == "school" and farm.state.time >= farm.state.bell:
+		goal = "school"
+		caption = "Buscar na escola"
+	var point: Vector2 = get_canvas_transform()*(land.anchors[goal]-Vector2(0,38))
+	var safe := point.clamp(Vector2(20,92),get_viewport_rect().size-Vector2(48,90))
+	var direction := point-safe
+	goal_pin.text = "◆" if direction.length()<1 else ["→","↘","↓","↙","←","↖","↑","↗"][posmod(roundi(direction.angle()/(PI/4)),8)]
+	goal_pin.position = safe+Vector2(0,3*sin(farm.state.time*3))
+	goal_pin.visible = not hud.page.visible
+	hud.destination.text = "◆  "+caption
