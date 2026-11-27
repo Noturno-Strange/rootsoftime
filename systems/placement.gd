@@ -16,6 +16,7 @@ const SPAWN := Vector2(457,674)
 const CHILD_HOME := Vector2(400,548)
 const CHILD_SCHOOL := Vector2(1245,336)
 const BOUNDS := Rect2(90,175,1360,755)
+var teacher: Node2D
 var roofs: Dictionary = {}
 var scenery_reservations: Array[Rect2] = []
 var doorways: Dictionary = {}
@@ -43,7 +44,15 @@ func place(key: String, pos: Vector2, height: float, solid: float = 0) -> Node2D
 	display.add_child(node)
 	var tex: Texture2D = art.textures[key]
 	var sprite_width := height*tex.get_width()/tex.get_height()
-	node.add_child(art.ground_shadow(sprite_width*0.98,maxf(8,height*0.25)))
+	if key == "home":
+		var foundation := Sprite2D.new()
+		foundation.texture = preload("res://assets/home_contact.png")
+		foundation.centered = false
+		foundation.offset = Vector2(-tex.get_width()*0.5-16,-tex.get_height()-16)
+		foundation.scale = Vector2.ONE * height / tex.get_height()
+		node.add_child(foundation)
+	else:
+		node.add_child(art.ground_shadow(sprite_width*0.98,maxf(8,height*0.25)))
 	node.add_child(art.sprite(key,height))
 	if solid > 0:
 		var depth := 116.0 if key == "warehouse" else minf(65,height*0.25)
@@ -65,7 +74,7 @@ func building(key: String, d: Array) -> Node2D:
 	var opening := 27.0
 	var left := door-opening+extent
 	var right := extent-door-opening
-	var walls := [[Vector2(0,-65),extent,68],[Vector2(-extent+5,0),5,66],[Vector2(extent-5,0),5,66],
+	var walls := [[Vector2(0,-65),extent,14 if key == "school" else 68],[Vector2(-extent+5,0),5,66],[Vector2(extent-5,0),5,66],
 		[Vector2(-extent+left/2,0),left/2,12],[Vector2(extent-right/2,0),right/2,12]]
 	for piece: Array in walls:
 		var wall := Node2D.new()
@@ -77,14 +86,21 @@ func building(key: String, d: Array) -> Node2D:
 	interiors[key] = inside
 	return front
 
+func inside_building(key: String, viewer: Vector2) -> bool:
+	var relative: Vector2 = viewer - SITES[key][0]
+	var doorway := absf(relative.x-float(doorways[key])) < 27 and relative.y <= 10
+	return absf(relative.x) < float(SITES[key][3])-14 and relative.y >= -67 and (relative.y < -7 or doorway)
+
 func reveal_rooms(viewer: Vector2, delta: float) -> void:
 	for key: String in roofs:
+		var inside := inside_building(key,viewer)
 		var relative: Vector2 = viewer - SITES[key][0]
-		var doorway := absf(relative.x-float(doorways[key])) < 27 and relative.y <= 10
-		var inside := absf(relative.x) < float(SITES[key][3])-14 and relative.y >= -67 and (relative.y < -7 or doorway)
+		var behind := key == "school" and relative.y < -79 and absf(relative.x) < float(SITES[key][3])
 		var roof: Node2D = roofs[key]
-		roof.modulate.a = move_toward(roof.modulate.a,0.0 if inside else 1.0,delta*5)
-		interiors[key].visible = roof.modulate.a < 0.999
+		var opacity := 0.0 if inside else (0.4 if behind else 1.0)
+		roof.modulate.a = move_toward(roof.modulate.a,opacity,delta*5)
+		interiors[key].visible = inside
+	teacher.visible = interiors.school.visible
 
 func build(root: Node2D, atlas: RefCounted) -> void:
 	art = atlas
@@ -106,6 +122,14 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		var tex: Texture2D = art.textures[d[1]]
 		var size := tex.get_size()*float(d[2])/tex.get_height()
 		scenery_reservations.append(Rect2(d[0]-Vector2(size.x/2,size.y),size).grow(5))
+	teacher = Node2D.new()
+	teacher.position = SITES.school[0] + Vector2(77,-45)
+	display.add_child(teacher)
+	teacher.add_child(art.ground_shadow(32,10))
+	teacher.add_child(art.sprite("teacher",88))
+	obstacle(teacher,8,7)
+	teacher.visible = false
+	anchors["teacher"] = teacher.position + Vector2(0,13)
 	for detail: Array in [
 		["geranium",Vector2(282,387),34,11], ["geranium",Vector2(1310,323),29,9],
 		["rail",Vector2(453,781),42,24], ["rail",Vector2(520,787),38,22],
@@ -161,6 +185,7 @@ func nearest(pos: Vector2) -> String:
 	var best := 68.0
 	var target := ""
 	for key: String in anchors:
+		if key == "teacher" and not inside_building("school",pos): continue
 		var dist := pos.distance_to(anchors[key])
 		if dist < best:
 			best = dist

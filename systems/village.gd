@@ -337,6 +337,7 @@ func request_action(key: String, expected_action: String, tool: int) -> void:
 
 func perform(id: int, key: String, tool: int = 0) -> bool:
 	if not actors.has(id) or not land.anchors.has(key): return false
+	if key == "teacher" and not land.inside_building("school",actors[id].position): return false
 	var needed := farm.required_tool(key)
 	if needed >= 0 and tool != needed: return false
 	if actors[id].position.distance_to(land.anchors[key]) > 68: return false
@@ -362,6 +363,7 @@ func perform(id: int, key: String, tool: int = 0) -> bool:
 @rpc("authority","call_remote","reliable")
 func feedback(id: int, key: String, message: String, kind: String) -> void:
 	if multiplayer.get_unique_id() == id: hud.status(message)
+	if key == "teacher": return
 	if actors.has(id):
 		var worker: Actor = actors[id]
 		worker.activity = "pour" if kind == "water" else ("hoe" if message == "Terra preparada." else "pick")

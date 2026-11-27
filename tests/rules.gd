@@ -42,6 +42,27 @@ func run() -> void:
 			check(player.test_move(start,Vector2(0,-48)),"Parede frontal "+name)
 		check(not player.test_move(Transform2D(0,center+Vector2(door,30)),Vector2(0,-60)),"Porta livre "+name)
 		check(player.test_move(Transform2D(0,center+Vector2(door,-31)),Vector2(0,-65)),"Limite do piso "+name)
+	var school: Vector2 = village.land.SITES.school[0]
+	var rear := school + Vector2(-183,-108)
+	for dir in [1,-1]:
+		var start := rear if dir == 1 else rear + Vector2(366,0)
+		check(village.land.BOUNDS.has_point(start) and not player.test_move(Transform2D(0,start),Vector2(366*dir,0)), "Travessia física atrás da escola")
+	village.land.reveal_rooms(rear+Vector2(183,0),1)
+	check(not village.land.teacher.visible and not village.land.interiors.school.visible, "Passagem externa preserva a sala fechada")
+	var desk: Vector2 = village.land.anchors.teacher
+	player.position = desk
+	village.land.reveal_rooms(desk,1)
+	check(village.land.teacher.visible and village.land.nearest(desk) == "teacher", "Professora acessível dentro da sala")
+	check(village.perform(1,"teacher") and "Célia" in village.hud.news.text, "Conversa na escola")
+	player.position = Vector2(desk.x,school.y+14)
+	check(not village.perform(1,"teacher") and village.land.nearest(player.position) != "teacher", "Sem conversa através da parede")
+	var class_farm := Farm.new()
+	class_farm.state.family = "school"
+	class_farm.state.bell = 24
+	check("24 s" in class_farm.act(1,"teacher"), "Professora informa tempo de aula")
+	class_farm.tick(24)
+	check("terminou" in class_farm.act(1,"teacher") and class_farm.state.family == "school", "Professora avisa da saída sem concluir a escolta")
+	player.position = village.land.SPAWN
 	check_workshop()
 	check_rain_and_market()
 	check_progression()

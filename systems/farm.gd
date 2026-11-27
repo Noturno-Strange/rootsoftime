@@ -129,6 +129,14 @@ func act(id: int, target: String, tool: int = 0) -> String:
 		hands[id] = ""
 		return "Preparo iniciado."
 	match target:
+		"teacher":
+			match str(state.family):
+				"school":
+					if state.time >= state.bell: return "Profª Célia · A aula terminou! Pode buscar a turma na porta."
+					return "Profª Célia · Estamos em aula. O sino toca em %d s." % ceili(state.bell-state.time)
+				"out": return "Profª Célia · A turma chegou? Vamos nos encontrar na entrada."
+				"back": return "Profª Célia · Até amanhã, crianças! Boa volta para casa."
+			return "Profª Célia · Bom dia! Pode trazer as crianças quando estiverem prontas."
 		"well":
 			if tool != 2 or state.water == water_capacity(): return ""
 			state.water = water_capacity()
@@ -250,6 +258,7 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 		if recipes[target].has(hand): return "Preparar " + str(recipes[target][hand][0]).to_lower()
 		return {"mill":"Moinho · milho", "press":"Prensa · massa ralada", "stove":"Fogão a lenha", "wash":"Lavar mandioca", "grater":"Ralar milho ou mandioca lavada", "sieve":"Peneirar massa prensada", "pan":"Chapa · ovos, leite ou massa peneirada", "oven":"Forno · massa de milho ou de broa"}[target]
 	match target:
+		"teacher": return "Conversar com a professora Célia"
 		"well": return "Encher regador no poço · %d/%d" % [state.water,water_capacity()] if state.water < water_capacity() else "Regador cheio"
 		"warehouse":
 			var level := int(state.levels[clampi(tool,0,3)])
