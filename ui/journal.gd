@@ -355,6 +355,7 @@ func _ready() -> void:
 	layout.add_child(actions)
 	key_button = button(audio,"Tecla de interação",func() -> void: remap_requested.emit())
 	button(actions,"Voltar à vila",toggle)
+	button(actions,"Sair do jogo",exit_game)
 	page.hide()
 	page.visibility_changed.connect(func() -> void:
 		for widget in [almanac,requests,tools,pouch,context]: widget.visible = not page.visible)
@@ -396,8 +397,7 @@ func _ready() -> void:
 		if i == 0: enter = b
 		b.pressed.connect(func() -> void:
 			if i == 4:
-				get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
-				get_tree().quit()
+				exit_game()
 			else:
 				sections.current_tab = 1 if i == 3 else 0
 				enter_village([-1,3,2,3][i]))
@@ -428,6 +428,10 @@ func show_avatar(index: int) -> void:
 		elif sections.current_tab == 2:
 			spread_art.texture = art.textures["market"]
 			spread_caption.text = "Som e controles"
+
+func exit_game() -> void:
+	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	get_tree().quit()
 
 func enter_village(tab: int) -> void:
 	cover.hide()
