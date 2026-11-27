@@ -32,6 +32,10 @@ var interact_key := KEY_E
 var rebinding := false
 var room_secret := ""
 var state_timer := 0.0
+# Posição do alimento no tampo ou na abertura, em fração da altura da arte.
+const DISPLAY_HEIGHT := {"table":0.60, "stove":0.62, "mill":0.17, "press":0.39,
+	"wash":0.69, "grater":0.43, "sieve":0.59, "pan":0.60, "oven":0.40}
+
 var dirty := true
 var net_timer := 0.0
 var save_timer := 0.0
@@ -70,7 +74,7 @@ func _ready() -> void:
 	stations.append("table")
 	for k: String in stations:
 		var s: Sprite2D = art.sprite("meal",24)
-		s.position = Vector2(12,-34)
+		s.position = Vector2(12, -float(Layout.SITES[k][2]) * DISPLAY_HEIGHT[k])
 		land.visuals[k].add_child(s)
 		indicators[k] = s
 	for i in range(4):
@@ -536,7 +540,7 @@ func _physics_process(dt: float) -> void:
 		if s.visible and key != "table":
 			var job: Dictionary = farm.state.jobs[key]
 			art.paint(s,Farm.ICON.get(job.product,"meal"),22)
-			s.position.y = (-65.0 if key == "pan" else -34.0) + (sin(farm.state.time*7)*1.7 if farm.state.time < job.ready else 0.0)
+			s.position.y = -float(Layout.SITES[key][2]) * DISPLAY_HEIGHT[key] + (sin(farm.state.time*7)*1.7 if farm.state.time < job.ready else 0.0)
 	var hour := fmod(390+farm.state.time*2,1440)/1440
 	var night := clampf((cos(hour*TAU)-0.05)*1.5,0,1)
 	tint.color = Color.WHITE.lerp(Color("#7784a4"),night)

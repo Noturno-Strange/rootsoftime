@@ -3,12 +3,12 @@ extends RefCounted
 const SITES := {
 	"well":[Vector2(867,616),"well",115,34], "warehouse":[Vector2(1300,800),"warehouse",187,95],
 	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
-	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(548,450),"stove",87,45],
-	"table":[Vector2(376,515),"table",66,44], "market":[Vector2(1014,710),"market",155,88],
-	"tray":[Vector2(559,562),"shared_table",76,51], "storage":[Vector2(678,528),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
-	"wash":[Vector2(565,358),"wash",54,28], "grater":[Vector2(643,375),"grater",55,27],
-	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(202,449),"clay_oven",91,40],
-	"pan":[Vector2(262,567),"iron_griddle",108,61], "mix":[Vector2(165,627),"kneading_bench",65,31],
+	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(555,462),"stove",100,54],
+	"table":[Vector2(377,529),"table",76,44], "market":[Vector2(1014,710),"market",155,88],
+	"tray":[Vector2(559,562),"shared_table",76,51], "storage":[Vector2(698,534),"chest",56,30], "press":[Vector2(887,358),"press",88,28],
+	"wash":[Vector2(558,363),"wash",65,29], "grater":[Vector2(648,382),"grater",66,28],
+	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(214,461),"clay_oven",106,45],
+	"pan":[Vector2(253,570),"iron_griddle",103,54], "mix":[Vector2(165,627),"kneading_bench",65,31],
 	"hen":[Vector2(1024,522),"hen",34,8], "cow":[Vector2(1130,787),"cow",73,38],
 	"orchard":[Vector2(1200,586),"mango",196,24]
 }
