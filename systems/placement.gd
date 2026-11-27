@@ -19,6 +19,7 @@ const WORLD_SIZE := Vector2(2560,1664)
 const BOUNDS := Rect2(90,175,2390,1420)
 const Farm = preload("res://systems/farm.gd")
 var dropped: Dictionary = {}
+var fruit_shadows: Dictionary = {}
 const BOOTHS := ["market","fruit_stall","grain_stall","dairy_stall"]
 var shoppers: Array[Node2D] = []
 var last_purchase: Array[int] = []
@@ -289,8 +290,14 @@ func build_orchard() -> void:
 		anchors[key] = site[1]+Vector2(0,14)
 	var spots := {"pequi_drop":Vector2(1614,489),"lime_drop":Vector2(1821,422),"acerola_drop":Vector2(1857,688)}
 	for key: String in spots:
-		var icon: String = Farm.ICON[Farm.FRUIT_SPOTS[key]]
-		dropped[key] = place(icon,spots[key],17)
+		var shade: Sprite2D = art.ground_shadow(18,7)
+		shade.position = spots[key]-Vector2(0,2)
+		soil_layer.add_child(shade)
+		fruit_shadows[key] = shade
+		var fruit: Sprite2D = art.sprite(key,12 if key == "acerola_drop" else 15)
+		fruit.modulate = Color("#e5d5ba")
+		display.add_child(fruit)
+		dropped[key] = fruit
 		anchors[key] = spots[key]
 	for i in 10:
 		plant_tree("mango" if i%2 else "banana",Vector2(1515+i*99,142+13*sin(i)),147+8*(i%4),15)
@@ -300,6 +307,7 @@ func update_fruits(farm: RefCounted) -> void:
 		var remaining: float = farm.state.fallen[key]-farm.state.time
 		var fruit: Node2D = dropped[key]
 		fruit.visible = remaining < 0.45
+		fruit_shadows[key].visible = fruit.visible
 		var t := clampf(remaining/0.45,0.0,1.0)
 		fruit.position = anchors[key] - Vector2(21*t,62*t*(2.0-t))
 

@@ -1468,5 +1468,82 @@
   412,
   400,
   347
+ ],
+ "pequi_tree_contact": [
+  "orchard_shade",
+  4,
+  4,
+  480,
+  100
+ ],
+ "lime_tree_contact": [
+  "orchard_shade",
+  492,
+  4,
+  480,
+  100
+ ],
+ "acerola_tree_contact": [
+  "orchard_shade",
+  980,
+  4,
+  480,
+  100
+ ],
+ "village_hut_contact": [
+  "orchard_shade",
+  1468,
+  4,
+  480,
+  100
+ ],
+ "gardener_contact": [
+  "orchard_shade",
+  4,
+  112,
+  480,
+  100
+ ],
+ "weaver_contact": [
+  "orchard_shade",
+  492,
+  112,
+  480,
+  100
+ ],
+ "cook_contact": [
+  "orchard_shade",
+  980,
+  112,
+  480,
+  100
+ ],
+ "healer_contact": [
+  "orchard_shade",
+  1468,
+  112,
+  480,
+  100
+ ],
+ "pequi_drop": [
+  "windfall",
+  4,
+  4,
+  152,
+  126
+ ],
+ "lime_drop": [
+  "windfall",
+  164,
+  4,
+  152,
+  139
+ ],
+ "acerola_drop": [
+  "windfall",
+  324,
+  4,
+  152,
+  113
  ]
 }

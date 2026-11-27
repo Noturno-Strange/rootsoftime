@@ -1,6 +1,6 @@
 # Créditos técnicos e licenças
 
-Os atlas, o terreno, os efeitos sintetizados e a composição instrumental foram preparados para este projeto. As referências entregues com a especificação orientaram a direção visual. As fontes usam o sistema instalado.
+Os atlas, o terreno, os efeitos sintetizados e a composição instrumental foram preparados para este projeto. As referências entregues com a especificação orientaram a direção visual. O caderno e a interface usam as fontes Latin Modern Roman e Latin Modern Roman Caps, distribuídas com o jogo.
 
 A distribuição do executável incorpora a Godot Engine, sob licença MIT, e seus componentes de terceiros. Consulte as licenças da versão da engine distribuída.
 
@@ -2214,3 +2214,42 @@ appreciated but is not required.
 misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 
+
+## Latin Modern — fontes OpenType
+
+Copyright 2003–2021 B. Jackowski e J. M. Nowacki (TeX Users Groups). Fontes distribuídas sem alterações. Pacote original e arquivos da família: https://ctan.org/pkg/lm
+
+Appendix B -- GUST Font License
+-------------------------------
+
+What follows is the exact contents of GUST-FONT-LICENSE.txt from the
+upstream distribution of the Latin Modern fonts.
+
+% This is version 1.0, dated 22 June 2009, of the GUST Font License.
+% (GUST is the Polish TeX Users Group, http://www.gust.org.pl)
+%
+% For the most recent version of this license see
+% http://www.gust.org.pl/fonts/licenses/GUST-FONT-LICENSE.txt
+% or
+% http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt
+%
+% This work may be distributed and/or modified under the conditions
+% of the LaTeX Project Public License, either version 1.3c of this
+% license or (at your option) any later version.
+%
+% Please also observe the following clause:
+% 1) it is requested, but not legally required, that derived works be
+%    distributed only after changing the names of the fonts comprising this
+%    work and given in an accompanying "manifest", and that the
+%    files comprising the Work, as listed in the manifest, also be given
+%    new names. Any exceptions to this request are also given in the
+%    manifest.
+%
+%    We recommend the manifest be given in a separate file named
+%    MANIFEST-<fontid>.txt, where <fontid> is some unique identification
+%    of the font family. If a separate "readme" file accompanies the Work,
+%    we recommend a name of the form README-<fontid>.txt.
+%
+% The latest version of the LaTeX Project Public License is in
+% http://www.latex-project.org/lppl.txt and version 1.3c or later
+% is part of all distributions of LaTeX version 2006/05/20 or later.

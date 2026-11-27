@@ -65,7 +65,8 @@ var levels: Dictionary = {}
 var quiet: CheckButton
 var steady: CheckButton
 var message_until := 0
-var serif := SystemFont.new()
+const serif := preload("res://assets/lmromancaps10-regular.otf")
+const reading_face := preload("res://assets/lmroman10-regular.otf")
 var base := Control.new()
 const INK := Color("#302c25")
 const CREAM := Color("#f3e5cc")
@@ -75,13 +76,13 @@ func box(bg: Color, border: Color, margin: int = 12) -> StyleBoxFlat:
 	s.bg_color = bg
 	s.border_color = border
 	s.set_border_width_all(2)
-	s.set_corner_radius_all(8)
+	s.set_corner_radius_all(5)
 	s.content_margin_left = margin
 	s.content_margin_right = margin
 	s.content_margin_top = margin*0.65
 	s.content_margin_bottom = margin*0.65
 	s.shadow_color = Color(0.10,0.09,0.05,0.22)
-	s.shadow_size = 4
+	s.shadow_size = 2
 	return s
 
 func label(parent: Control, value: String, size: int, ink: Color = INK, title: bool = false) -> Label:
@@ -116,9 +117,11 @@ func panel(parent: Control, dark: bool = false) -> PanelContainer:
 	return p
 
 func _ready() -> void:
-	serif.font_names = PackedStringArray(["Georgia","Liberation Serif","DejaVu Serif"])
 	var theme := Theme.new()
-	theme.default_font_size = 16
+	theme.default_font_size = 17
+	theme.default_font = reading_face
+	theme.set_font("font","TabContainer",serif)
+	theme.set_font("font","Button",serif)
 	var button_colors := {"normal":"#7c412e","hover":"#975739","pressed":"#40573a"}
 	for state: String in button_colors:
 		theme.set_stylebox(state,"Button",box(Color(button_colors[state]),Color("#b99562"),12))
@@ -202,8 +205,9 @@ func _ready() -> void:
 	page = panel(base)
 	var binding := StyleBoxTexture.new()
 	binding.texture = preload("res://assets/book.webp")
-	for side in [SIDE_LEFT,SIDE_RIGHT]: binding.set_content_margin(side,45)
-	for side in [SIDE_TOP,SIDE_BOTTOM]: binding.set_content_margin(side,44)
+	for side in [SIDE_LEFT,SIDE_RIGHT]: binding.set_content_margin(side,70)
+	binding.set_content_margin(SIDE_TOP,54)
+	binding.set_content_margin(SIDE_BOTTOM,48)
 	page.add_theme_stylebox_override("panel",binding)
 	page.custom_minimum_size = Vector2(1090,510)
 	page.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -240,7 +244,7 @@ func _ready() -> void:
 		if i == 3: show_avatar(avatar))
 	spread_art.texture = art.textures["home"]
 	spread_caption.text = "A vila"
-	label(layout,"Caderno da vila",32,INK,true)
+	label(layout,"Caderno da vila",34,Color("#61351f"),true)
 	tabs.custom_minimum_size = Vector2(450,300)
 	layout.add_child(tabs)
 	var village_tab := VBoxContainer.new()
@@ -257,7 +261,10 @@ func _ready() -> void:
 	tabs.add_child(options)
 	for tab in [village_tab,cookbook,session,options]: tab.add_theme_constant_override("separation",8)
 	tabs.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
-	label(village_tab,"Do canteiro à mesa",23,INK,true)
+	label(village_tab,"Do canteiro à mesa",22,INK,true)
+	label(village_tab,"Plante e regue o milho. Depois da colheita, moa os grãos. Leve o fubá ao fogão junto à casa para fazer angu.",18).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label(village_tab,"Pelos caminhos da vila",20,Color("#744327"),true)
+	label(village_tab,"A feira e o sítio ficam ao sul. Para visitar o pomar e a aldeia, siga a leste.",17).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note = label(village_tab,"",16)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	book = label(village_tab,"",15)
@@ -495,8 +502,9 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 		task_detail.text = "Água · %d/%d" % [s.water,farm.water_capacity()]
 	task_detail.visible = task_detail.text != ""
 	if Time.get_ticks_msec() > message_until: news.text = ""
-	note.text = "WASD ou setas para andar · Shift para correr\nRoda para trocar ferramenta · Ctrl + roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nAo sul ficam a feira e o sítio à venda. O pomar e a aldeia ficam a leste."
-	book.text = "Receitas descobertas: %s\nRefeições servidas: %d   ·   Entregas: %d   ·   Idas à escola: %d" % [", ".join(s.book) if not s.book.is_empty() else "—",s.served,s.sales,s.trips]
+	note.text = "WASD ou setas · andar     Shift · correr\nRoda · ferramenta     Ctrl + roda · zoom"
+	book.text = "Descobertas no caderno · %d\nRefeições · %d     Entregas · %d     Idas à escola · %d" % [s.book.size(),s.served,s.sales,s.trips]
+	book.tooltip_text = ", ".join(s.book)
 
 func net_status(message: String, in_session: bool) -> void:
 	pin.visible = not in_session
