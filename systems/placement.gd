@@ -4,7 +4,7 @@ const SITES := {
 	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
 	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(515,484),"stove",98,48],
 	"table":[Vector2(353,550),"table",76,60], "market":[Vector2(1014,710),"market",155,88],
-	"tray":[Vector2(604,506),"bench",39,39], "storage":[Vector2(685,489),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
+	"tray":[Vector2(604,506),"shared_table",57,49], "storage":[Vector2(685,489),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
 	"wash":[Vector2(565,358),"wash",54,28], "grater":[Vector2(643,375),"grater",55,27],
 	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(272,621),"stove",80,38],
 	"pan":[Vector2(428,476),"stove",66,32], "mix":[Vector2(334,671),"table",53,32],
@@ -102,11 +102,19 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		var d: Array = SITES[key]
 		if key in ["home","school"]:
 			visuals[key] = building(key,d)
+		elif key == "tray":
+			var shared := preload("res://systems/serving_tray.gd").new()
+			shared.position = d[0]
+			display.add_child(shared)
+			obstacle(shared,49,20)
+			visuals[key] = shared
 		else:
 			visuals[key] = place(d[1],d[0],d[2],d[3])
 		anchors[key] = d[0] + Vector2(doorways.get(key,0),12)
-		var tex: Texture2D = art.textures[d[1]]
-		var size := tex.get_size()*float(d[2])/tex.get_height()
+		var size := Vector2(104,57)
+		if key != "tray":
+			var tex: Texture2D = art.textures[d[1]]
+			size = tex.get_size()*float(d[2])/tex.get_height()
 		scenery_reservations.append(Rect2(d[0]-Vector2(size.x/2,size.y),size).grow(5))
 	for i in range(8):
 		var pos := Vector2(460 + (i%4)*90,646 + floori(i/4.0)*83)

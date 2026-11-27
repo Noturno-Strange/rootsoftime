@@ -119,7 +119,7 @@ func act(id: int, target: String) -> String:
 			if hand != "" and state.tray.size() < TRAY_CAPACITY:
 				state.tray.append(hand)
 				hands[id] = ""
-				return "%s na bandeja." % hand
+				return "%s na mesa compartilhada." % hand
 			if hand == "" and not state.tray.is_empty():
 				hands[id] = state.tray.pop_back()
 				return "%s no cesto." % hands[id]
@@ -208,8 +208,8 @@ func prompt(id: int, target: String) -> String:
 		"orchard": return "Colher manga"
 		"tray":
 			if hand == "":
-				return "Retirar " + str(state.tray.back()) if not state.tray.is_empty() else "Bandeja vazia"
-			return "Bandeja cheia" if state.tray.size() >= TRAY_CAPACITY else "Colocar " + hand
+				return "Retirar " + str(state.tray.back()) if not state.tray.is_empty() else "Mesa compartilhada vazia"
+			return "Mesa compartilhada cheia" if state.tray.size() >= TRAY_CAPACITY else "Colocar " + hand
 		"storage": return "Guardar " + hand if hand != "" else "Depósito · %d itens" % state.storage.size()
 		"market": return "Restaurar banco · 15 moedas" if hand == "" and not state.upgrade else "Entregar prato na feira"
 	return ""

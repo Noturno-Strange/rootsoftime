@@ -59,12 +59,9 @@ func _ready() -> void:
 	session.peer_authentication_failed.connect(auth_failed)
 	land.build(self,art)
 	paths.build(land)
-	var tray := preload("res://systems/serving_tray.gd").new()
-	tray.position = Vector2(0,-24)
-	land.visuals.tray.add_child(tray)
 	for i in range(Farm.TRAY_CAPACITY):
 		var portion: Sprite2D = art.sprite("ear",16)
-		portion.position = Vector2(-33+i*20,-20-i*1.7)
+		portion.position = preload("res://systems/serving_tray.gd").PLACES[i]
 		land.visuals.tray.add_child(portion)
 		tray_items.append(portion)
 	add_child(tint)
