@@ -334,6 +334,23 @@ func act(id: int, target: String, tool: int = 0) -> String:
 				return "Hora de voltar para casa."
 	return ""
 
+func hint_is_passive(id: int, target: String) -> bool:
+	var hand: String = hands.get(id,"")
+	if recipes.has(target):
+		if state.jobs.has(target):
+			return state.time < state.jobs[target].ready or not hand.is_empty()
+		return not recipes[target].has(hand)
+	if target == "homestead": return state.land or state.coins < LAND_PRICE
+	if STOCK_PRICE.has(target):
+		if not state.land: return true
+		if not state.stock.has(target): return state.coins < STOCK_PRICE[target]
+		return state.time < state.stock[target] or (target == "farm_hen" and hand != "Milho") or (target == "farm_pig" and hand not in CROPS)
+	if target.begins_with("plot"):
+		var index := target.trim_prefix("plot").to_int()
+		var stage: int = state.plots[index].stage
+		return (index >= 8 and not state.land) or (stage == 3 and hand != "Adubo") or (stage == 4 and hand != "") or (stage == 2 and state.water == 0)
+	return false
+
 func prompt(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
 	if target == "homestead" or STOCK_PRICE.has(target): return homestead_prompt(id,target)
@@ -353,13 +370,15 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 		if p.stage == 2 and Weather.seconds_until_rain(state.time) <= 15:
 			return "Regar ou aguardar a chuva" if state.water > 0 else "Aguarde a chuva ou busque água"
 		if p.stage == 2 and state.water == 0: return "Busque água no poço"
+		if p.stage == 4 and hand != "": return "Esvazie o cesto para colher"
 		return ["Preparar a terra", "Plantar " + CROPS[int(p.crop)].to_lower(), "Regar o canteiro", "Cultivo em crescimento", "Colher " + CROPS[int(p.crop)].to_lower()][int(p.stage)]
 	if recipes.has(target):
 		if state.jobs.has(target):
 			var job: Dictionary = state.jobs[target]
+			if state.time >= job.ready and hand != "": return "Esvazie o cesto para retirar " + str(job.product).to_lower()
 			return ("Retirar " if state.time >= job.ready else "Preparando ") + str(job.product).to_lower()
 		if recipes[target].has(hand): return "Preparar " + str(recipes[target][hand][0]).to_lower()
-		return {"mill":"Moinho · milho", "press":"Prensa · massa ralada", "stove":"Fogão a lenha", "wash":"Lavar mandioca", "grater":"Ralar milho ou mandioca lavada", "sieve":"Peneirar massa prensada", "pan":"Chapa · ovos, leite ou massa peneirada", "oven":"Forno · massa de milho ou de broa"}[target]
+		return {"mill":"Moinho · milho", "press":"Prensa · massa ralada, limão ou acerola", "stove":"Fogão a lenha", "wash":"Tanque · traga mandioca", "grater":"Ralar milho ou mandioca lavada", "sieve":"Peneirar massa prensada", "pan":"Chapa · ovos, leite ou massa peneirada", "oven":"Forno · massa de milho ou de broa"}[target]
 	match target:
 		"teacher": return "Conversar com a professora Célia"
 		"well": return "Encher regador no poço · %d/%d" % [state.water,water_capacity()] if state.water < water_capacity() else "Regador cheio"

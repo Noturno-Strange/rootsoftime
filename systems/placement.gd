@@ -6,7 +6,7 @@ const SITES := {
 	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(555,462),"stove",100,54],
 	"table":[Vector2(377,529),"table",76,44], "market":[Vector2(1150,1245),"food_booth",158,69],
 	"tray":[Vector2(559,562),"shared_table",76,51], "storage":[Vector2(698,534),"chest",56,30], "press":[Vector2(887,358),"press",88,28],
-	"wash":[Vector2(558,363),"wash",65,29], "grater":[Vector2(648,382),"grater",66,28],
+	"wash":[Vector2(591,381),"wash",65,29], "grater":[Vector2(683,397),"grater",66,28],
 	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(214,461),"clay_oven",106,45],
 	"pan":[Vector2(253,570),"iron_griddle",103,54], "mix":[Vector2(165,627),"kneading_bench",65,31],
 	"hen":[Vector2(1024,522),"hen",34,8], "cow":[Vector2(1130,787),"cow",73,38],
@@ -26,6 +26,7 @@ var last_purchase: Array[int] = []
 var animals: Dictionary = {}
 var deed_label := Label.new()
 var teacher: Node2D
+var hut_exteriors: Array[Sprite2D] = []
 var roofs: Dictionary = {}
 var scenery_reservations: Array[Rect2] = []
 var doorways: Dictionary = {}
@@ -68,7 +69,15 @@ func place(key: String, pos: Vector2, height: float, solid: float = 0) -> Node2D
 		soil_layer.add_child(shade)
 	else:
 		node.add_child(art.ground_shadow(sprite_width*0.98,maxf(8,height*0.25)))
-	node.add_child(art.sprite(key,height))
+	var illustration: Sprite2D = art.sprite(key,height)
+	node.add_child(illustration)
+	if key == "village_hut":
+		hut_exteriors.append(illustration)
+	if key.ends_with("_booth"):
+		for side in [-1,1]:
+			var foot: Sprite2D = art.ground_shadow(sprite_width*0.21,height*0.048)
+			foot.position = pos + Vector2(side*sprite_width*0.39,-height*0.014)
+			soil_layer.add_child(foot)
 	if solid > 0:
 		var depth := 116.0 if key == "warehouse" else minf(65,height*0.25)
 		obstacle(node,solid,depth)
@@ -107,6 +116,11 @@ func inside_building(key: String, viewer: Vector2) -> bool:
 	return absf(relative.x) < float(SITES[key][3])-14 and relative.y >= -67 and (relative.y < -7 or doorway)
 
 func reveal_rooms(viewer: Vector2, delta: float) -> void:
+	for hut in hut_exteriors:
+		var local_feet := viewer - hut.global_position
+		var size := hut.texture.get_size()*hut.scale
+		var covered := local_feet.y <= 0 and local_feet.y >= -size.y and absf(local_feet.x) < size.x*0.47
+		hut.self_modulate.a = move_toward(hut.self_modulate.a,0.32 if covered else 1.0,delta*5)
 	for key: String in roofs:
 		var inside := inside_building(key,viewer)
 		var relative: Vector2 = viewer - SITES[key][0]
@@ -232,7 +246,9 @@ func build_fair() -> void:
 		animals[key] = place(key,site[1],site[2])
 		anchors[key] = site[1]+Vector2(0,12)
 		place("basket",site[1]+Vector2(-24,0),20)
-	for x in range(362,855,68): place("rail",Vector2(x,1562),42,25)
+	# Os lances compartilham os mourões e deixam uma entrada diante do galinheiro.
+	for x in [362,408,454,500,662,708,754,800,846]:
+		place("rail",Vector2(x,1562+roundi(2*sin(x*0.025))),42,23)
 	for x in [1030,1840]: place("geranium",Vector2(x,1260),38,10)
 	for i in 5:
 		var actor := preload("res://systems/actor.gd").new()

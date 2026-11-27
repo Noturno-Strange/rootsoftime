@@ -17,6 +17,21 @@ func run() -> void:
 	var village := preload("res://scenes/village.tscn").instantiate()
 	root.add_child(village)
 	await physics_frame
+	var preview := Farm.new()
+	preview.state.time = 590
+	preview.hands[1] = "Pequi"
+	village.hud.refresh(preview,1,"wash","E")
+	check("Madrugada" in village.hud.objective.text and not "[E]" in village.hud.hint.text,"Madrugada e tanque com ingrediente incompatível")
+	preview.hands[1] = "Mandioca"
+	village.hud.refresh(preview,1,"wash","E")
+	check("[E]" in village.hud.hint.text,"Tanque oferece preparo com mandioca")
+	village.hud.refresh(preview,1,"plot8","E")
+	check(not "[" in village.hud.hint.text,"Terreno fechado não sugere equipar ou usar ferramenta")
+	var hut: Sprite2D = village.land.hut_exteriors[0]
+	village.land.reveal_rooms(hut.global_position-Vector2(0,80),1)
+	check(hut.self_modulate.a < 0.4,"Telhado revela a pessoa atrás da casa")
+	village.land.reveal_rooms(hut.global_position+Vector2(0,20),1)
+	check(is_equal_approx(hut.self_modulate.a,1.0),"Casa opaca ao sair de trás dela")
 	var wheel := InputEventMouseButton.new()
 	wheel.pressed = true
 	wheel.button_index = MOUSE_BUTTON_WHEEL_UP

@@ -474,15 +474,22 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	kit_button.text = "%s · Nv. %d   [B]" % [TOOL_NAMES[tool_id],levels_in_use[tool_id]]
 	var minutes := int(390+s.time*2.0)
 	date_label.text = "Dia %02d   ·   %02d:%02d" % [1+minutes/1440,(minutes/60)%24,minutes%60]
-	objective.text = "%s   ·   %d moedas" % ["Chuva de verão" if preload("res://systems/weather.gd").raining(s.time) else "Sol de verão",s.coins]
+	var hour := (minutes/60)%24
+	var sky := "Sol de verão"
+	if hour < 6: sky = "Madrugada"
+	elif hour >= 18: sky = "Noite de verão"
+	if preload("res://systems/weather.gd").raining(s.time): sky = "Chuva de verão"
+	objective.text = "%s   ·   %d moedas" % [sky,s.coins]
 	order_icon.texture = art.textures[Farm.ICON[farm.ORDERS[int(s.order)]]]
 	order_label.text = "%s   %d/%d" % [farm.ORDERS[int(s.order)],s.delivered,s.quota]
 	var item: String = farm.hands.get(me,"")
 	carry_icon.texture = art.textures.get(farm.ICON.get(item,"meal") if item != "" else "basket")
 	carry.text = "Cesto  ·  " + (item if item != "" else "vazio")
-	hint.text = "["+key+"]  "+farm.prompt(me,target,tool_id) if target != "" else ""
+	hint.text = farm.prompt(me,target,tool_id) if target != "" else ""
+	var passive: bool = farm.hint_is_passive(me,target)
+	if not passive and not hint.text.is_empty(): hint.text = "["+key+"]  "+hint.text
 	var needed: int = farm.required_tool(target)
-	if needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target,tool_id)]
+	if not passive and needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target,tool_id)]
 	hint.visible = not hint.text.is_empty()
 	task_detail.text = ""
 	task_meter.max_value = s.quota
