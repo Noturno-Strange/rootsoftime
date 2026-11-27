@@ -481,9 +481,10 @@ func _physics_process(dt: float) -> void:
 			avatar.move_and_slide()
 			avatar.position = avatar.position.clamp(Layout.BOUNDS.position,Layout.BOUNDS.end)
 			avatar.pose(avatar.get_real_velocity(),dt,farm.hands.get(peer,""))
-		farm.tick(dt)
+		if online or not (hud.cover.visible or hud.page.visible or hud.kit.visible):
+			farm.tick(dt)
+			update_escort(dt)
 		state_timer += dt
-		update_escort(dt)
 		save_timer += dt
 		if save_timer >= 12:
 			save_timer = 0

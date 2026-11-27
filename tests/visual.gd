@@ -15,6 +15,21 @@ func run() -> void:
 	village = preload("res://scenes/village.tscn").instantiate()
 	root.add_child(village)
 	await create_timer(0.5).timeout
+	# Ao anoitecer, qualquer avanço do relógio altera a cor do cenário.
+	var original_time: float = village.farm.state.time
+	village.farm.state.time = 380.0
+	await create_timer(0.15).timeout
+	for menu in ["caderno","baú","caderno"]:
+		var before: Color = village.tint.color
+		var clock: float = village.farm.state.time
+		if menu == "caderno": village.hud.toggle()
+		else: village.hud.open_tools()
+		await create_timer(0.25).timeout
+		if village.farm.state.time != clock or not village.tint.color.is_equal_approx(before): failed = true
+		if menu == "caderno": village.hud.toggle()
+		else: village.hud.close_tools()
+		if village.hud.kit.visible or village.hud.page.visible or not village.hud.base.visible: failed = true
+	village.farm.state.time = original_time
 	var farmer: CharacterBody2D = village.actors[1]
 	var corn: Vector2 = village.land.anchors["plot0"]
 	farmer.position = corn+Vector2(0,22)
