@@ -3,12 +3,12 @@ extends RefCounted
 const SITES := {
 	"well":[Vector2(867,616),"well",115,34], "warehouse":[Vector2(1300,800),"warehouse",187,95],
 	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
-	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(520,460),"stove",87,45],
-	"table":[Vector2(332,557),"table",66,44], "market":[Vector2(1014,710),"market",155,88],
-	"tray":[Vector2(609,541),"shared_table",57,49], "storage":[Vector2(735,540),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
+	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(548,450),"stove",87,45],
+	"table":[Vector2(376,515),"table",66,44], "market":[Vector2(1014,710),"market",155,88],
+	"tray":[Vector2(559,562),"shared_table",76,51], "storage":[Vector2(678,528),"chest",48,38], "press":[Vector2(887,358),"press",88,28],
 	"wash":[Vector2(565,358),"wash",54,28], "grater":[Vector2(643,375),"grater",55,27],
-	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(240,468),"stove",103,52],
-	"pan":[Vector2(386,458),"stove",64,32], "mix":[Vector2(224,568),"table",54,35],
+	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(202,449),"clay_oven",91,40],
+	"pan":[Vector2(262,567),"iron_griddle",108,61], "mix":[Vector2(165,627),"kneading_bench",65,31],
 	"hen":[Vector2(1024,522),"hen",34,8], "cow":[Vector2(1130,787),"cow",73,38],
 	"orchard":[Vector2(1200,586),"mango",196,24]
 }
@@ -105,19 +105,11 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		var d: Array = SITES[key]
 		if key in ["home","school"]:
 			visuals[key] = building(key,d)
-		elif key == "tray":
-			var shared := preload("res://systems/serving_tray.gd").new()
-			shared.position = d[0]
-			display.add_child(shared)
-			obstacle(shared,49,20)
-			visuals[key] = shared
 		else:
 			visuals[key] = place(d[1],d[0],d[2],d[3])
 		anchors[key] = d[0] + Vector2(doorways.get(key,0),12)
-		var size := Vector2(104,57)
-		if key != "tray":
-			var tex: Texture2D = art.textures[d[1]]
-			size = tex.get_size()*float(d[2])/tex.get_height()
+		var tex: Texture2D = art.textures[d[1]]
+		var size := tex.get_size()*float(d[2])/tex.get_height()
 		scenery_reservations.append(Rect2(d[0]-Vector2(size.x/2,size.y),size).grow(5))
 	for i in range(8):
 		var pos := Vector2(460 + (i%4)*90,646 + floori(i/4.0)*83)

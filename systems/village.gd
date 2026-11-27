@@ -535,7 +535,7 @@ func _physics_process(dt: float) -> void:
 		if s.visible and key != "table":
 			var job: Dictionary = farm.state.jobs[key]
 			art.paint(s,Farm.ICON.get(job.product,"meal"),22)
-			s.position.y = -34.0 + (sin(farm.state.time*7)*1.7 if farm.state.time < job.ready else 0.0)
+			s.position.y = (-65.0 if key == "pan" else -34.0) + (sin(farm.state.time*7)*1.7 if farm.state.time < job.ready else 0.0)
 	var hour := fmod(390+farm.state.time*2,1440)/1440
 	var night := clampf((cos(hour*TAU)-0.05)*1.5,0,1)
 	tint.color = Color.WHITE.lerp(Color("#7784a4"),night)

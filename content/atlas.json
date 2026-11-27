@@ -1048,5 +1048,33 @@
   47,
   999,
   789
+ ],
+ "shared_table": [
+  "yard_kitchen",
+  3,
+  3,
+  390,
+  255
+ ],
+ "iron_griddle": [
+  "yard_kitchen",
+  403,
+  3,
+  390,
+  308
+ ],
+ "clay_oven": [
+  "yard_kitchen",
+  3,
+  353,
+  341,
+  340
+ ],
+ "kneading_bench": [
+  "yard_kitchen",
+  403,
+  353,
+  376,
+  340
  ]
 }
