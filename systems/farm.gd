@@ -92,6 +92,12 @@ const LAND_PRICE := 35
 const STOCK_PRICE := {"farm_cat":5,"farm_hen":8,"farm_pig":12}
 const STOCK_NAME := {"farm_cat":"gato","farm_hen":"galinha","farm_pig":"porco"}
 const STALL_NAMES := {"market":"Dona Dica · cozinha", "fruit_stall":"Bento · frutas","grain_stall":"Luzia · roça","dairy_stall":"Zeca · ovos e leite"}
+const GREETINGS := {
+	"market":"Dona Dica · Tem prato feito? Traga o pedido da vila que eu pago um extra.",
+	"fruit_stall":"Bento · Compro manga, pequi, limão e acerola. No pomar, procure os frutos caídos.",
+	"grain_stall":"Luzia · Traga milho, arroz, feijão, mandioca ou fubá. Eu compro a sua colheita.",
+	"dairy_stall":"Zeca · Leite fresco ou ovos no cesto? Pode trazer pra mim."
+}
 const OFFERS := {"fruit_stall":{"Manga":3,"Pequi":4,"Limão":3,"Acerola":3},
 	"grain_stall":{"Milho":2,"Arroz":2,"Feijão":3,"Mandioca":3,"Fubá":4},
 	"dairy_stall":{"Ovos":4,"Leite":4}}
@@ -163,6 +169,7 @@ func act(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
 	if target == "homestead" or STOCK_PRICE.has(target): return homestead_action(id,target)
 	if OFFERS.has(target):
+		if hand.is_empty(): return GREETINGS[target]
 		if not OFFERS[target].has(hand): return ""
 		var price: int = OFFERS[target][hand]
 		state.coins += price
@@ -304,6 +311,7 @@ func act(id: int, target: String, tool: int = 0) -> String:
 				state.coins -= 15
 				state.upgrade = true
 				return "Banco da praça restaurado!"
+			if hand.is_empty(): return GREETINGS.market
 		"table":
 			if MEALS.has(hand) and state.family == "home":
 				hands[id] = ""
@@ -336,7 +344,8 @@ func act(id: int, target: String, tool: int = 0) -> String:
 
 func hint_is_passive(id: int, target: String) -> bool:
 	var hand: String = hands.get(id,"")
-	if OFFERS.has(target): return not OFFERS[target].has(hand)
+	if OFFERS.has(target): return not hand.is_empty() and not OFFERS[target].has(hand)
+	if target == "market": return not hand.is_empty() and market_payout(hand) <= 0
 	if recipes.has(target):
 		if state.jobs.has(target):
 			return state.time < state.jobs[target].ready or not hand.is_empty()
@@ -356,6 +365,7 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 	var hand: String = hands.get(id, "")
 	if target == "homestead" or STOCK_PRICE.has(target): return homestead_prompt(id,target)
 	if OFFERS.has(target):
+		if hand.is_empty(): return "Conversar com " + STALL_NAMES[target].get_slice(" · ",0)
 		if OFFERS[target].has(hand): return "%s · vender %s por %d" % [STALL_NAMES[target],hand,OFFERS[target][hand]]
 		return "%s · compra %s" % [STALL_NAMES[target],", ".join(OFFERS[target].keys())]
 	if FRUIT_SPOTS.has(target):
@@ -402,11 +412,11 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 		"storage": return "Guardar " + hand if hand != "" else "Depósito · %d itens" % state.storage.size()
 		"market":
 			if hand == "":
-				return "Restaurar banco · 15 moedas" if not state.upgrade else "Dona Dica · pratos e farinha"
+				return "Dona Dica · restaurar banco por 15 moedas" if not state.upgrade and state.coins >= 15 else "Conversar com Dona Dica"
 			var payout := market_payout(hand)
 			if payout == 0: return "A feira compra pratos e farinha"
 			var action := "Entregar" if hand == ORDERS[int(state.order)] else "Vender"
-			return "%s %s · %d moedas" % [action, hand, payout]
+			return "Dona Dica · %s %s · %d moedas" % [action, hand, payout]
 	return ""
 
 func required_tool(target: String) -> int:

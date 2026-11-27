@@ -38,6 +38,11 @@ func run() -> void:
 	check(not preview.hint_is_passive(1,"grain_stall"),"Milho habilita a venda de grãos")
 	village.land.reveal_rooms(village.land.SITES.home[0]+Vector2(180,-20),1)
 	check(village.land.roofs.home.modulate.a < 0.5 and not village.land.interiors.home.visible,"Lateral da casa revela o jogador pelo exterior")
+	var visitor := Farm.new()
+	for stall: String in village.land.BOOTHS:
+		var merchant: CharacterBody2D = village.land.merchants[stall]
+		check(village.land.nearest(merchant.position) == stall,"Atendimento junto a "+str(merchant.name))
+		check(visitor.act(1,stall) == Farm.GREETINGS[stall] and visitor.state.coins == 0,"Conversa sem alterar saldo em "+stall)
 	var wheel := InputEventMouseButton.new()
 	wheel.pressed = true
 	wheel.button_index = MOUSE_BUTTON_WHEEL_UP

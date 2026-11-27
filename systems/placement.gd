@@ -4,7 +4,7 @@ const SITES := {
 	"well":[Vector2(867,616),"well",115,34], "warehouse":[Vector2(1300,800),"warehouse",187,95],
 	"home":[Vector2(365,375),"home",315,170], "mill":[Vector2(765,330),"mill",205,104],
 	"school":[Vector2(1245,311),"school",289,181], "stove":[Vector2(555,462),"stove",100,54],
-	"table":[Vector2(377,529),"table",76,44], "market":[Vector2(1150,1245),"food_booth",158,69],
+	"table":[Vector2(377,529),"table",76,44],
 	"tray":[Vector2(559,562),"shared_table",76,51], "storage":[Vector2(698,534),"chest",56,30], "press":[Vector2(887,358),"press",88,28],
 	"wash":[Vector2(591,381),"wash",65,29], "grater":[Vector2(683,397),"grater",66,28],
 	"sieve":[Vector2(979,362),"sieve",58,25], "oven":[Vector2(214,461),"clay_oven",106,45],
@@ -21,6 +21,7 @@ const Farm = preload("res://systems/farm.gd")
 var dropped: Dictionary = {}
 var fruit_shadows: Dictionary = {}
 const BOOTHS := ["market","fruit_stall","grain_stall","dairy_stall"]
+var merchants: Dictionary = {}
 var shoppers: Array[Node2D] = []
 var last_purchase: Array[int] = []
 var animals: Dictionary = {}
@@ -73,11 +74,6 @@ func place(key: String, pos: Vector2, height: float, solid: float = 0) -> Node2D
 	node.add_child(illustration)
 	if key == "village_hut":
 		hut_exteriors.append(illustration)
-	if key.ends_with("_booth"):
-		for side in [-1,1]:
-			var foot: Sprite2D = art.ground_shadow(sprite_width*0.21,height*0.048)
-			foot.position = pos + Vector2(side*sprite_width*0.39,-height*0.014)
-			soil_layer.add_child(foot)
 	if solid > 0:
 		var depth := 116.0 if key == "warehouse" else minf(65,height*0.25)
 		obstacle(node,solid,depth)
@@ -247,12 +243,27 @@ func fenceline(start: Vector2, spans: int) -> void:
 
 func build_fair() -> void:
 	for site: Array in [
-		["fruit_stall","fruit_booth",Vector2(1345,1198)], ["grain_stall","grain_booth",Vector2(1542,1206)],
-		["dairy_stall","dairy_booth",Vector2(1735,1248)], ["homestead","board",Vector2(805,1314)]]:
+		["market","food_booth",Vector2(1150,1245),3,["angu","bread","beiju"]],
+		["fruit_stall","fruit_booth",Vector2(1345,1198),0,["pequi_fruit","lime_fruit","acerola_fruit"]],
+		["grain_stall","grain_booth",Vector2(1542,1206),1,["ear","flour","roots"]],
+		["dairy_stall","dairy_booth",Vector2(1735,1248),2,["milk","eggs","milk"]]]:
 		var key: String = site[0]
-		var signpost := key == "homestead"
-		visuals[key] = place(site[1],site[2],63 if signpost else 158,22 if signpost else 69)
-		anchors[key] = site[2]+Vector2(0,18)
+		var stand := preload("res://systems/market_booth.gd").new()
+		stand.position = site[2]
+		display.add_child(stand)
+		stand.setup(art,site[1],site[4])
+		obstacle(stand,45,23)
+		var seller := preload("res://systems/actor.gd").new()
+		seller.name = Farm.STALL_NAMES[key].get_slice(" · ",0)
+		seller.appearance = site[3]
+		seller.position = stand.position+Vector2(66,2)
+		display.add_child(seller)
+		seller.setup(art)
+		merchants[key] = seller
+		visuals[key] = seller
+		anchors[key] = seller.position+Vector2(0,9)
+	visuals.homestead = place("board",Vector2(805,1314),63,22)
+	anchors.homestead = visuals.homestead.position+Vector2(0,18)
 	deed_label.position = Vector2(-32,-56)
 	deed_label.size = Vector2(64,32)
 	deed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -278,6 +289,11 @@ func build_fair() -> void:
 		last_purchase.append(-1)
 
 func update_fair(farm: RefCounted, dt: float, viewer: Vector2, sound: RefCounted) -> void:
+	for key: String in merchants:
+		var seller = merchants[key]
+		var relative := viewer - Vector2(seller.position)
+		seller.last_dir = Vector2(signf(relative.x),0) if relative.length() < 110 else Vector2.LEFT
+		seller.pose(Vector2.ZERO,dt,"")
 	for key: String in animals:
 		var animal: Node2D = animals[key]
 		animal.visible = farm.state.stock.has(key)

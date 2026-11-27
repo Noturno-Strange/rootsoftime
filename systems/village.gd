@@ -362,6 +362,7 @@ func perform(id: int, key: String, tool: int = 0) -> bool:
 	if key == "well" or text.begins_with("Canteiro regado"): kind = "water"
 	if key in ["table","market","stove"]: kind = "meal"
 	if key in ["market","warehouse"] or Farm.OFFERS.has(key): kind = "coin"
+	if Farm.GREETINGS.has(key) and text == Farm.GREETINGS[key]: kind = "voice"
 	if key == "homestead": kind = "unlock"
 	if Farm.STOCK_PRICE.has(key): kind = "care"
 	if key in ["home","school","teacher","healer"] or Farm.NEIGHBORS.has(key): kind = "voice"
