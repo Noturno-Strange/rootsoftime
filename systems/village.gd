@@ -282,6 +282,12 @@ func peer_out(id: int) -> void:
 func _input(event: InputEvent) -> void:
 	if not is_node_ready() or hud.cover.visible: return
 	if event is InputEventKey and event.pressed and not event.echo:
+		if hud.kit.visible:
+			if event.keycode in [KEY_ESCAPE,KEY_B]: hud.close_tools()
+			elif event.keycode >= KEY_1 and event.keycode <= KEY_4: hud.equip_tool(event.keycode-KEY_1)
+			else: return
+			get_viewport().set_input_as_handled()
+			return
 		if rebinding:
 			rebinding = false
 			if event.keycode not in [KEY_B,KEY_ESCAPE,KEY_SHIFT,KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT]:
@@ -297,14 +303,14 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif not hud.page.visible and event.keycode in [interact_key,KEY_F]:
 			use_target()
-	if event is InputEventMouseButton and event.pressed and not hud.page.visible:
+	if event is InputEventMouseButton and event.pressed and not hud.page.visible and not hud.kit.visible:
 		if event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
 			var z := camera.zoom.x + (0.1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -0.1)
 			camera.zoom = Vector2.ONE*clampf(z,0.86,1.75)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if hud.cover.visible: return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and not hud.page.visible:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and not hud.page.visible and not hud.kit.visible:
 		var selected := land.nearest(get_global_mouse_position())
 		if selected != "" and selected == target: use_target()
 
@@ -572,7 +578,16 @@ func _notification(what: int) -> void:
 
 func update_goal(id: int) -> void:
 	var goal := "market"
-	var caption := "Entregar na feira"
+	var order: String = Farm.ORDERS[int(farm.state.order)]
+	var caption := "Feira · pedido de " + order
+	if farm.hands.get(id,"") == order: caption = "Entregar " + order
+	elif farm.state.jobs.size() > 0:
+		for station: String in farm.state.jobs:
+			var job: Dictionary = farm.state.jobs[station]
+			if farm.state.time >= job.ready and farm.hands.get(id,"") == "":
+				goal = station
+				caption = "Retirar " + str(job.product)
+				break
 	if farm.state.escort == id:
 		goal = "home" if farm.state.family == "back" else "school"
 		caption = "Voltar para casa" if goal == "home" else "Levar à escola"

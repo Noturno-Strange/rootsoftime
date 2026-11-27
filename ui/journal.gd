@@ -9,7 +9,10 @@ signal remap_requested
 const Farm = preload("res://systems/farm.gd")
 const TOOL_NAMES := ["Enxada","Sementes","Regador","Cesto"]
 var tool_id := 0
-var kit := PopupMenu.new()
+var kit := ColorRect.new()
+var slots: Array[Button] = []
+var task_meter := ProgressBar.new()
+var task_detail: Label
 var kit_button: Button
 var catalog: Array[String] = []
 var methods := {}
@@ -140,6 +143,11 @@ func _ready() -> void:
 	label(orders,"Pedidos da vila",20,Color("#87371f"),true)
 	order_label = label(orders,"",17,INK)
 	destination = label(orders,"",16,Color("#435626"))
+	task_detail = label(orders,"",15)
+	task_meter.custom_minimum_size = Vector2(200,9)
+	task_meter.show_percentage = false
+	task_meter.add_theme_stylebox_override("fill",box(Color("#526a37"),Color("#a79348"),0))
+	orders.add_child(task_meter)
 	var tools := HBoxContainer.new()
 	base.add_child(tools)
 	tools.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -147,12 +155,7 @@ func _ready() -> void:
 	tools.offset_right = -24
 	tools.offset_top = 20
 	kit_button = button(tools,"Enxada   [B]",open_tools)
-	base.add_child(kit)
-	kit.title = "Baú de ferramentas"
-	kit.add_separator("Baú de ferramentas")
-	for i in TOOL_NAMES.size():
-		kit.add_item("%d   %s" % [i+1,TOOL_NAMES[i]],i,KEY_1+i)
-	kit.id_pressed.connect(equip_tool)
+	build_kit(theme)
 	button(tools,"Caderno   Esc",toggle)
 	var pouch := panel(base,true)
 	pouch.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
@@ -448,6 +451,19 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	hint.text = "["+key+"]  "+farm.prompt(me,target) if target != "" else ""
 	var needed: int = farm.required_tool(target)
 	if needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target)]
+	task_detail.text = ""
+	task_meter.max_value = s.quota
+	task_meter.value = s.delivered
+	if s.jobs.has(target):
+		var job: Dictionary = s.jobs[target]
+		var left := maxi(0,ceili(float(job.ready)-float(s.time)))
+		task_detail.text = "%s · %d s" % [job.product,left] if left > 0 else "%s pronto para retirar" % job.product
+	elif target.begins_with("plot"):
+		var plot: Dictionary = s.plots[target.trim_prefix("plot").to_int()]
+		var stage := int(plot.stage)
+		task_detail.text = ["Preparar a terra","Plantar as sementes","Regar","Crescendo","Pronto para colher"][stage]
+		if stage == 3: task_detail.text += " · %d s" % maxi(0,ceili(float(plot.ready)-float(s.time)))
+	task_detail.visible = task_detail.text != ""
 	if Time.get_ticks_msec() > message_until: news.text = ""
 	note.text = "WASD ou setas para andar · Shift para correr · Roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nSirva as crianças na mesa ou entregue o prato na feira."
 	book.text = "Receitas descobertas: %s\nRefeições servidas: %d   ·   Entregas: %d   ·   Idas à escola: %d" % [", ".join(s.book) if not s.book.is_empty() else "—",s.served,s.sales,s.trips]
@@ -462,13 +478,60 @@ func net_status(message: String, in_session: bool) -> void:
 	address.visible = not in_session
 	leave_button.visible = in_session
 
+func build_kit(theme: Theme) -> void:
+	add_child(kit)
+	kit.theme = theme
+	kit.color = Color(0.10,0.08,0.04,0.64)
+	kit.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	kit.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var chest := panel(center)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation",12)
+	chest.add_child(column)
+	var heading := HBoxContainer.new()
+	column.add_child(heading)
+	var chest_icon := TextureRect.new()
+	chest_icon.texture = art.textures["chest"]
+	chest_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chest_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chest_icon.custom_minimum_size = Vector2(62,44)
+	heading.add_child(chest_icon)
+	label(heading,"Baú de ferramentas",30,INK,true)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation",8)
+	grid.add_theme_constant_override("v_separation",8)
+	column.add_child(grid)
+	var icons := ["hoe","seedling","can","basket"]
+	var uses := ["Preparar a terra","Plantar no canteiro","Regar o plantio","Recolher a colheita"]
+	for i in TOOL_NAMES.size():
+		var slot := button(grid,"",func() -> void: equip_tool(i))
+		slot.icon = art.textures[icons[i]]
+		slot.add_theme_constant_override("icon_max_width",44)
+		slot.custom_minimum_size = Vector2(240,80)
+		slot.tooltip_text = uses[i]
+		slots.append(slot)
+	button(column,"Voltar à vila   [Esc]",close_tools)
+	kit.hide()
+
 func open_tools() -> void:
-	kit.reset_size()
-	kit.popup_centered()
-	kit.set_focused_item(tool_id+1)
+	base.hide()
+	kit.show()
+	for i in slots.size():
+		slots[i].text = "%d   %s%s" % [i+1,TOOL_NAMES[i],"\nEm uso" if i == tool_id else ""]
+		slots[i].add_theme_stylebox_override("normal",box(Color("#3c5634") if i == tool_id else Color("#88482c"),Color("#bc9762"),12))
+	slots[tool_id].grab_focus()
+
+func close_tools() -> void:
+	kit.hide()
+	base.show()
+	base.get_viewport().gui_release_focus()
 
 func equip_tool(index: int) -> void:
 	tool_id = index
+	close_tools()
 	kit_button.text = "%s   [B]" % TOOL_NAMES[index]
 	status("%s em uso." % TOOL_NAMES[index])
 

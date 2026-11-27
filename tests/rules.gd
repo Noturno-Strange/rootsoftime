@@ -29,6 +29,7 @@ func run() -> void:
 			check(player.test_move(start,Vector2(0,-48)),"Parede frontal "+name)
 		check(not player.test_move(Transform2D(0,center+Vector2(door,30)),Vector2(0,-60)),"Porta livre "+name)
 		check(player.test_move(Transform2D(0,center+Vector2(door,-31)),Vector2(0,-65)),"Limite do piso "+name)
+	check_progression()
 	var farm: Farm = village.farm
 	for k: String in village.land.anchors:
 		var path: PackedVector2Array = village.paths.route(village.land.SPAWN,village.land.anchors[k])
@@ -108,3 +109,43 @@ func run() -> void:
 	await process_frame
 	await create_timer(0.25).timeout
 	quit(1 if failures else 0)
+
+# Reproduz as ações disponíveis na vila, sempre com um único cesto.
+func make_product(farm: Farm, product: String) -> bool:
+	if product in Farm.CROPS:
+		var key := "plot%d" % Farm.CROPS.find(product)
+		for step in 3:
+			if farm.required_tool(key) != step or farm.act(1,key).is_empty(): return false
+		farm.tick(25)
+		return farm.required_tool(key) == 3 and not farm.act(1,key).is_empty() and farm.hands[1] == product
+	var sources := {"Leite":"cow","Ovos":"hen","Manga":"orchard"}
+	if sources.has(product):
+		farm.tick(40)
+		return not farm.act(1,sources[product]).is_empty() and farm.hands[1] == product
+	for pair: String in Farm.BLENDS:
+		if Farm.BLENDS[pair] != product: continue
+		for ingredient in pair.split("|"):
+			if not make_product(farm,ingredient) or farm.act(1,"mix").is_empty(): return false
+		return farm.hands[1] == product
+	for station: String in farm.recipes:
+		for ingredient: String in farm.recipes[station]:
+			var recipe: Array = farm.recipes[station][ingredient]
+			if recipe[0] != product: continue
+			if not make_product(farm,ingredient) or farm.act(1,station).is_empty(): return false
+			farm.tick(float(recipe[1])+0.1)
+			return not farm.act(1,station).is_empty() and farm.hands[1] == product
+	return false
+
+func check_progression() -> void:
+	for dish: String in Farm.MEALS:
+		var kitchen := Farm.new()
+		check(make_product(kitchen,dish) and not kitchen.act(1,"table").is_empty(),"Preparar e servir "+dish)
+	for size in [1,2,6]:
+		var market := Farm.new()
+		market.participants = size
+		for dish: String in Farm.ORDERS:
+			var quota := int(market.state.quota)
+			for unit in quota:
+				check(make_product(market,dish) and not market.act(1,"market").is_empty(),"Entregar "+dish)
+		check(market.state.feasts == 1,"Festa após ciclo de encomendas")
+		check(not market.act(1,"market").is_empty() and market.state.upgrade,"Restaurar banco com as vendas")
