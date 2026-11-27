@@ -1,5 +1,5 @@
-# Rotina de Lia
+# Crianças da vila
 
-Sirva uma refeição na mesa quando Lia estiver em casa. Chame-a na entrada da casa, siga a trilha até a escola e espere que ela alcance a entrada antes de interagir. A aula dura 24 segundos de jogo ativo. Qualquer participante pode buscá-la e acompanhá-la até casa.
+As quatro crianças brincam entre a horta, a praça e o campo a leste, com trajetos e ritmos de saída diferentes. Chame o grupo na entrada da casa para levá-lo à escola. Espere as quatro crianças chegarem à entrada antes de entregá-las. A aula dura 24 segundos de jogo ativo. Qualquer participante pode buscar o grupo e acompanhá-lo até casa.
 
-A navegação usa uma grade A* construída a partir das colisões de base. O percurso é recalculado enquanto o acompanhante se move. Se ele se desconectar durante a ida, Lia volta para casa. Durante a volta, ela espera na escola. A alimentação, a ida e a busca são as três responsabilidades familiares da edição.
+Na mesa, uma refeição conta como porção familiar. O anfitrião controla a rotina e calcula cada trajeto na grade de colisões. Os convidados recebem e interpolam as quatro posições. Se o acompanhante sair durante a ida, o grupo volta à rotina da vila. Durante a volta, espera na escola.

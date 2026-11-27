@@ -14,7 +14,7 @@ const SITES := {
 const SPAWN := Vector2(457,674)
 const CHILD_HOME := Vector2(400,548)
 const CHILD_SCHOOL := Vector2(1245,336)
-const BOUNDS := Rect2(90,175,1360,755)
+const BOUNDS := Rect2(90,175,1870,755)
 var roofs: Dictionary = {}
 var interiors: Dictionary = {}
 var anchors: Dictionary = {}
@@ -82,6 +82,7 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 	var ground := Sprite2D.new()
 	ground.texture = preload("res://assets/ground.webp")
 	ground.centered = false
+	ground.scale = Vector2(2048,1024)/ground.texture.get_size()
 	root.add_child(ground)
 	display = Node2D.new()
 	display.y_sort_enabled = true
@@ -109,14 +110,18 @@ func build(root: Node2D, atlas: RefCounted) -> void:
 		plants.append(plant)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1942
-	for i in range(18):
+	for i in range(23):
 		var pos := Vector2(i*94+rng.randf_range(-22,22),rng.randf_range(142,206))
 		place("banana" if i%3==0 else "mango",pos,rng.randf_range(145,225),18)
-	for side in [70,1478]:
+	for side in [70,1995]:
 		for i in range(6):
 			place("mango" if i%2==0 else "banana",Vector2(side+rng.randf_range(-20,20),330+i*120),rng.randf_range(138,199),15)
-	for pos in [Vector2(230,455),Vector2(1113,370),Vector2(1090,833),Vector2(278,809)]:
+	for pos in [Vector2(230,455),Vector2(1113,370),Vector2(1090,833),Vector2(278,809),Vector2(1560,385),Vector2(1780,740),Vector2(1850,400)]:
 		place("banana",pos,113,12)
+
+	place("bench",Vector2(1650,480),44,42)
+	place("home",Vector2(1790,340),210,98)
+	place("mango",Vector2(1660,820),180,16)
 
 func nearest(pos: Vector2) -> String:
 	var best := 68.0

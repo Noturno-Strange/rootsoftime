@@ -19,11 +19,12 @@ var chat_times: Dictionary = {}
 var chat_history := PackedStringArray()
 var last_actions: Dictionary = {}
 var camera := Camera2D.new()
-var lia := Actor.new()
+var kids: Array[Actor] = []
+var routes := {}
+var deadlines := {}
+var play_points := [Vector2(520,585),Vector2(830,545),Vector2(1150,445),Vector2(1540,550),Vector2(1750,710)]
 var tint := CanvasModulate.new()
-var trail := PackedVector2Array()
 var paths := preload("res://systems/paths.gd").new()
-var repath := 0.0
 var target := ""
 var highlight := Line2D.new()
 var interact_key := KEY_E
@@ -33,12 +34,14 @@ var state_timer := 0.0
 var dirty := true
 var net_timer := 0.0
 var save_timer := 0.0
+var foot_distance := 0.0
+var last_foot := Vector2.ZERO
 var birds := 2.0
 var connected := false
 var joining := false
 var online := false
 var family_prev := ""
-var child_target := Vector2.ZERO
+var child_targets := PackedVector2Array()
 var indicators: Dictionary = {}
 var bench: Node2D
 var settings := ConfigFile.new()
@@ -63,17 +66,21 @@ func _ready() -> void:
 		s.position = Vector2(12,-34)
 		land.visuals[k].add_child(s)
 		indicators[k] = s
-	land.display.add_child(lia)
-	lia.setup(art,true)
-	lia.position = Layout.CHILD_HOME
+	for i in range(4):
+		var kid := Actor.new()
+		land.display.add_child(kid)
+		kid.setup(art,true)
+		kid.kid_index = i
+		kid.position = play_points[i]
+		kids.append(kid)
 	add_child(camera)
 	camera.limit_left = 0
 	camera.limit_top = 0
-	camera.limit_right = 1536
+	camera.limit_right = 2048
 	camera.limit_bottom = 1024
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8
-	camera.zoom = Vector2.ONE * 0.96
+	camera.zoom = Vector2.ONE * 1.32
 	camera.offset = Vector2.ZERO
 	var ear := AudioListener2D.new()
 	camera.add_child(ear)
@@ -216,7 +223,7 @@ func leave_game() -> void:
 		farm = Farm.new()
 		if not test_mode: farm.state = Save.recover(farm.state)
 	spawn(1)
-	trail.clear()
+	routes.clear()
 	land.refresh(farm)
 	hud.net_status("Individual · você está na sua vila.",false)
 
@@ -238,7 +245,7 @@ func peer_out(id: int) -> void:
 		farm.participants = actors.size()
 
 func _input(event: InputEvent) -> void:
-	if not is_node_ready(): return
+	if not is_node_ready() or hud.cover.visible: return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if rebinding:
 			rebinding = false
@@ -258,6 +265,7 @@ func _input(event: InputEvent) -> void:
 			camera.zoom = Vector2.ONE*clampf(z,0.86,1.75)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if hud.cover.visible: return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and not hud.page.visible:
 		var selected := land.nearest(get_global_mouse_position())
 		if selected != "" and selected == target: use_target()
@@ -279,8 +287,8 @@ func perform(id: int, key: String) -> bool:
 	if Time.get_ticks_msec() - int(last_actions.get(id,-1000)) < 220: return false
 	last_actions[id] = Time.get_ticks_msec()
 	if (key == "school" and farm.state.family == "out") or (key == "home" and farm.state.family == "back"):
-		if lia.position.distance_to(land.anchors[key]) > 92:
-			if id == 1: hud.status("Espere Lia alcançar a entrada.")
+		if kids.any(func(k: Actor) -> bool: return k.position.distance_to(land.anchors[key]) > 105):
+			if id == 1: hud.status("Espere as crianças alcançarem a entrada.")
 			return false
 	var text := farm.act(id,key)
 	if text.is_empty(): return false
@@ -288,6 +296,8 @@ func perform(id: int, key: String) -> bool:
 	var kind := "grain" if key.begins_with("plot") else "wood"
 	if text.begins_with("Canteiro regado"): kind = "water"
 	if key in ["table","market","stove"]: kind = "meal"
+	if key == "market": kind = "coin"
+	if key in ["mill","grater","sieve"]: kind = "mill"
 	feedback(id,key,text,kind)
 	if online: feedback.rpc(id,key,text,kind)
 	land.refresh(farm)
@@ -302,6 +312,12 @@ func feedback(id: int, key: String, message: String, kind: String) -> void:
 		worker.action_time = 0.68
 	var spot: Vector2 = land.anchors[key]
 	sound.play(self,spot,kind,-9)
+	if land.visuals.has(key):
+		var prop: Node2D = land.visuals[key]
+		var bounce := prop.create_tween()
+		bounce.tween_property(prop,"scale",Vector2(1.035,0.965),0.09)
+		bounce.tween_property(prop,"scale",Vector2.ONE,0.2)
+
 	var dust := CPUParticles2D.new()
 	dust.position = spot-Vector2(0,16)
 	dust.one_shot = true
@@ -334,7 +350,7 @@ func receive_world(s: Dictionary, hands: Dictionary) -> void:
 	land.refresh(farm)
 
 @rpc("authority","call_remote","unreliable_ordered")
-func receive(positions: Dictionary, styles: Dictionary, child_pos: Vector2, clock: float) -> void:
+func receive(positions: Dictionary, styles: Dictionary, child_pos: PackedVector2Array, clock: float) -> void:
 	if not connected: return
 	farm.state.time = clock
 	for id: int in positions:
@@ -346,7 +362,7 @@ func receive(positions: Dictionary, styles: Dictionary, child_pos: Vector2, cloc
 	for peer: int in styles:
 		if actors.has(peer): actors[peer].female = styles[peer]
 	destinations = positions
-	child_target = child_pos
+	child_targets = child_pos
 
 @rpc("any_peer","call_remote","reliable")
 func choose_farmer(female: bool) -> void:
@@ -379,7 +395,7 @@ func show_chat(line: String) -> void:
 	if not hud.page.visible: hud.status(line)
 
 func local_direction() -> Vector2:
-	if hud.page.visible or not get_window().has_focus() and not test_mode: return Vector2.ZERO
+	if hud.cover.visible or hud.page.visible or not get_window().has_focus() and not test_mode: return Vector2.ZERO
 	var left := Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT)
 	var right := Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT)
 	var up := Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP)
@@ -400,9 +416,11 @@ func _physics_process(dt: float) -> void:
 			var old := avatar.position
 			avatar.position = avatar.position.lerp(destinations[peer],1-exp(-19*dt))
 			avatar.pose((avatar.position-old)/dt,dt,farm.hands.get(peer,""))
-		var old_child := lia.position
-		lia.position = lia.position.lerp(child_target,1-exp(-18*dt))
-		lia.pose((lia.position-old_child)/dt,dt,"")
+		for i in range(mini(kids.size(),child_targets.size())):
+			var kid := kids[i]
+			var old := kid.position
+			kid.position = kid.position.lerp(child_targets[i],1-exp(-18*dt))
+			kid.pose((kid.position-old)/dt,dt,"")
 	else:
 		directions[1] = dir
 		for peer: int in actors:
@@ -411,11 +429,9 @@ func _physics_process(dt: float) -> void:
 			avatar.move_and_slide()
 			avatar.position = avatar.position.clamp(Layout.BOUNDS.position,Layout.BOUNDS.end)
 			avatar.pose(avatar.get_real_velocity(),dt,farm.hands.get(peer,""))
-		var prev := lia.position
 		farm.tick(dt)
 		state_timer += dt
 		update_escort(dt)
-		lia.pose((lia.position-prev)/dt,dt,"")
 		save_timer += dt
 		if save_timer >= 12:
 			save_timer = 0
@@ -428,19 +444,27 @@ func _physics_process(dt: float) -> void:
 				for peer: int in actors:
 					positions[peer] = actors[peer].position
 					styles[peer] = actors[peer].female
-				receive.rpc(positions,styles,lia.position,farm.state.time)
+				var spots := PackedVector2Array()
+				for kid in kids: spots.append(kid.position)
+				receive.rpc(positions,styles,spots,farm.state.time)
 				if dirty or state_timer > 0.75:
 					receive_world.rpc(farm.state,farm.hands)
 					dirty = false
 					state_timer = 0.0
 	if not actors.has(id): return
 	var viewer: Vector2 = actors[id].position
+	if last_foot.distance_to(viewer)<12: foot_distance += last_foot.distance_to(viewer)
+	last_foot = viewer
+	if foot_distance > 43:
+		foot_distance = 0
+		sound.play(self,viewer,"step",-14)
 	camera.position = viewer + Vector2(40,-95)
 	weather.position = camera.position-Vector2(0,200)
 	weather.emitting = weather.raining(farm.state.time)
-	lia.eating = farm.state.family == "eating"
+	for kid in kids:
+		kid.eating = farm.state.family == "eating"
 	land.reveal_rooms(viewer,dt)
-	lia.visible = farm.state.family != "school"
+	for kid in kids: kid.visible = farm.state.family != "school"
 	target = land.nearest(viewer)
 	highlight.visible = target != "" and not hud.page.visible
 	if highlight.visible: highlight.position = land.anchors[target]
@@ -466,23 +490,34 @@ func update_escort(dt: float) -> void:
 	if phase == "eating" and farm.state.time >= farm.state.bell:
 		farm.state.family = "home"
 		phase = "home"
-	if phase != family_prev:
-		trail.clear()
-		family_prev = phase
-	lia.visible = phase != "school"
-	if phase in ["out","back"] and actors.has(farm.state.escort):
-		var goal: Vector2 = actors[farm.state.escort].position
-		repath -= dt
-		if repath <= 0 or trail.is_empty():
-			trail = paths.route(lia.position,goal)
-			repath = 0.32
-		while not trail.is_empty() and lia.position.distance_to(trail[0]) < 6:
-			trail.remove_at(0)
-		if not trail.is_empty() and lia.position.distance_to(goal) > 32:
-			lia.velocity = lia.position.direction_to(trail[0])*minf(235,lia.position.distance_to(trail[0])/dt)
-			lia.move_and_slide()
-	else:
-		lia.position = Layout.CHILD_SCHOOL if phase == "school" else Layout.CHILD_HOME
+	var changed := phase != family_prev
+	family_prev = phase
+	for i in range(kids.size()):
+		var kid := kids[i]
+		var offset := Vector2((i%2)*29-15,(i/2)*22+9)
+		var goal := Layout.CHILD_HOME + offset
+		if phase == "school":
+			kid.position = Layout.CHILD_SCHOOL+offset
+			continue
+		if phase == "home":
+			var turn := float(farm.state.time)/6.5 + i*0.42
+			goal = play_points[(int(turn)+i)%play_points.size()]
+		elif phase in ["out","back"] and actors.has(farm.state.escort):
+			goal = actors[farm.state.escort].position+offset
+		elif phase == "eating":
+			kid.position = goal
+		if changed or farm.state.time >= deadlines.get(i,0.0):
+			routes[i] = paths.route(kid.position,goal)
+			deadlines[i] = farm.state.time+0.5
+		var path: PackedVector2Array = routes.get(i,PackedVector2Array())
+		while not path.is_empty() and kid.position.distance_to(path[0]) < 5: path.remove_at(0)
+		routes[i] = path
+		var prev := kid.position
+		if phase != "eating" and not path.is_empty() and kid.position.distance_to(goal)>12:
+			var speed := 122.0 if phase == "home" else 250.0
+			kid.velocity = kid.position.direction_to(path[0])*minf(speed,kid.position.distance_to(path[0])/dt)
+			kid.move_and_slide()
+		kid.pose((kid.position-prev)/dt,dt,"")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and is_node_ready() and not connected and not joining and not test_mode:

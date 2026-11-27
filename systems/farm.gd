@@ -123,17 +123,17 @@ func act(id: int, target: String) -> String:
 				state.served += 1
 				state.family = "eating"
 				state.bell = state.time + 4
-				return "Refeição servida para Lia."
+				return "Refeição servida para as crianças."
 		"home":
 			if state.family == "home" or (state.family == "eating" and state.time >= state.bell):
 				state.escort = id
 				state.family = "out"
-				return "Lia acompanha você até a escola."
+				return "As crianças acompanham você até a escola."
 			if state.family == "back" and state.escort == id:
 				state.escort = 0
 				state.family = "home"
 				state.trips += 1
-				return "Lia chegou em casa."
+				return "As crianças chegaram em casa."
 		"school":
 			if state.family == "out" and state.escort == id:
 				state.family = "school"
@@ -161,8 +161,8 @@ func prompt(id: int, target: String) -> String:
 		"hen": return "Recolher ovos"
 		"cow": return "Tirar leite"
 		"mix": return "Bancada · " + (str(state.bowl) if state.bowl != "" else "acrescentar ingrediente")
-		"home": return "Chegar em casa" if state.family == "back" else "Chamar Lia para a escola"
-		"school": return "Buscar Lia" if state.family == "school" else "Chegar à escola"
+		"home": return "Chegar em casa" if state.family == "back" else "Chamar as crianças para a escola"
+		"school": return "Buscar as crianças" if state.family == "school" else "Chegar à escola"
 		"table": return "Servir a refeição"
 		"orchard": return "Colher manga"
 		"storage": return "Guardar " + hand if hand != "" else "Depósito · %d itens" % state.storage.size()

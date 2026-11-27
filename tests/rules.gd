@@ -17,6 +17,9 @@ func run() -> void:
 	var village := preload("res://scenes/village.tscn").instantiate()
 	root.add_child(village)
 	await physics_frame
+	check(village.kids.size() == 4,"Quatro crianças")
+	for goal: Vector2 in village.play_points:
+		check(not village.paths.route(village.land.CHILD_HOME,goal).is_empty(),"Trilha de brincadeira")
 	var farm: Farm = village.farm
 	for k: String in village.land.anchors:
 		var path: PackedVector2Array = village.paths.route(village.land.SPAWN,village.land.anchors[k])

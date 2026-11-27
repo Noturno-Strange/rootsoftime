@@ -1,6 +1,6 @@
 # Roots of Time
 
-Um jogo 2D de agricultura familiar e cozinha artesanal em uma vila brasileira. Prepare o canteiro, plante milho, leve a colheita ao moinho e retire o fubá para cozinhar angu. Sirva Lia à mesa antes de acompanhá-la até a escola. A mesma vila aceita de uma a seis pessoas.
+Um jogo 2D de agricultura familiar e cozinha artesanal em uma vila brasileira. Prepare o canteiro, plante milho, leve a colheita ao moinho e retire o fubá para cozinhar angu. Sirva as quatro crianças à mesa antes de acompanhá-las até a escola. A mesma vila aceita de uma a seis pessoas.
 
 ![A horta e a vila durante uma partida](reports/vila.jpg)
 

@@ -6,6 +6,8 @@ signal leave_requested
 signal settings_changed
 signal chat_requested(message: String)
 signal remap_requested
+var art := preload("res://systems/art.gd").new()
+var carry_icon := TextureRect.new()
 var date_label: Label
 var objective: Label
 var carry: Label
@@ -17,6 +19,8 @@ var book: Label
 var address: LineEdit
 var pin: LineEdit
 var order_label: Label
+var cover := PanelContainer.new()
+var tabs := TabContainer.new()
 var page: PanelContainer
 var host_button: Button
 var join_button: Button
@@ -38,7 +42,7 @@ func box(bg: Color, border: Color, margin: int = 12) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
 	s.border_color = border
-	s.set_border_width_all(1)
+	s.set_border_width_all(2)
 	s.set_corner_radius_all(8)
 	s.content_margin_left = margin
 	s.content_margin_right = margin
@@ -100,7 +104,13 @@ func _ready() -> void:
 	pouch.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	pouch.offset_left = 24
 	pouch.offset_bottom = -20
-	carry = label(pouch,"",17,CREAM)
+	var held_row := HBoxContainer.new()
+	pouch.add_child(held_row)
+	carry_icon.custom_minimum_size = Vector2(39,35)
+	carry_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	carry_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	held_row.add_child(carry_icon)
+	carry = label(held_row,"",17,CREAM)
 	var context := VBoxContainer.new()
 	base.add_child(context)
 	context.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -122,7 +132,6 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation",8)
 	page.add_child(layout)
 	label(layout,"Caderno da vila",32,INK,true)
-	var tabs := TabContainer.new()
 	tabs.custom_minimum_size = Vector2(540,300)
 	layout.add_child(tabs)
 	var village_tab := VBoxContainer.new()
@@ -144,7 +153,18 @@ func _ready() -> void:
 	book = label(village_tab,"",15)
 	book.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label(cookbook,"Tradições da cozinha",23,INK,true)
-	label(cookbook,"Milho → moinho → fubá → fogão → angu\nMilho → ralador → massa de milho → forno → pamonha\nMandioca → lavar → ralar → prensar → peneirar → torrar\nMassa peneirada → chapa → beiju\nFubá + ovos → bancada → massa de broa → forno\nArroz branco + feijão de panela → bancada → fogão\nLeite + manga → bancada → fogão\nOvos ou leite → chapa   ·   Manga → fogão",16)
+	var plates := HBoxContainer.new()
+	cookbook.add_child(plates)
+	var recipe_note := label(cookbook,"",18,INK,true)
+	recipe_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var recipes := {"Angu":["angu","Leve milho ao moinho. Retire o fubá e cozinhe no fogão."],"Pamonha":["tamale","Rale o milho. Leve a massa de milho ao forno."],"Beiju":["beiju","Lave, rale e prense a mandioca. Peneire a massa e leve à chapa."],"Broa":["bread","Junte fubá e ovos na bancada. Asse a massa de broa no forno."],"Baião":["meal","Prepare arroz e feijão no fogão. Misture na bancada e volte ao fogo."]}
+	for dish: String in recipes:
+		var select := button(plates,dish,func() -> void: recipe_note.text = dish+"  ·  "+recipes[dish][1])
+		select.icon = art.textures[recipes[dish][0]]
+		select.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		select.add_theme_constant_override("icon_max_width",72)
+	recipe_note.text = "Angu  ·  "+recipes.Angu[1]
+	label(cookbook,"Na chapa também se preparam ovos e leite. Para o creme de manga,\nmisture leite e manga na bancada e leve ao fogão.",15)
 	label(options,"Conforto e personagem",23,INK,true)
 	label(session,"Partida cooperativa",23,INK,true)
 	var row := HBoxContainer.new()
@@ -200,6 +220,37 @@ func _ready() -> void:
 	button(actions,"Voltar à vila",toggle)
 	page.hide()
 
+	add_child(cover)
+	cover.theme = theme
+	cover.add_theme_stylebox_override("panel",box(CREAM,Color("#855531"),24))
+	cover.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	cover.offset_left = 50
+	cover.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var menu := VBoxContainer.new()
+	menu.add_theme_constant_override("separation",10)
+	cover.add_child(menu)
+	var crest := TextureRect.new()
+	crest.texture = art.textures["mango"]
+	crest.custom_minimum_size = Vector2(160,84)
+	crest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	crest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	menu.add_child(crest)
+	label(menu,"Roots of Time",39,INK,true)
+	var enter := button(menu,"Entrar na vila",func() -> void: enter_village(-1))
+	button(menu,"Cooperativo",func() -> void: enter_village(2))
+	button(menu,"Opções",func() -> void: enter_village(3))
+	button(menu,"Sair",func() -> void: get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST); get_tree().quit())
+	cover.visible = "--test" not in OS.get_cmdline_user_args()
+	base.visible = not cover.visible
+	if cover.visible: enter.grab_focus()
+
+func enter_village(tab: int) -> void:
+	cover.hide()
+	base.show()
+	if tab >= 0:
+		tabs.current_tab = tab
+		page.show()
+
 func toggle() -> void:
 	page.visible = not page.visible
 	if not page.visible: base.get_viewport().gui_release_focus()
@@ -215,10 +266,11 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	objective.text = "%s   ·   %d moedas" % ["Chuva de verão" if preload("res://systems/weather.gd").raining(s.time) else "Sol de verão",s.coins]
 	order_label.text = "Feira · %s (%d/%d)" % [farm.ORDERS[int(s.order)],s.delivered,s.quota]
 	var item: String = farm.hands.get(me,"")
+	carry_icon.texture = art.textures.get(farm.ICON.get(item,"meal") if item != "" else "basket")
 	carry.text = "Cesto  ·  " + (item if item != "" else "vazio")
 	hint.text = "["+key+"]  "+farm.prompt(me,target) if target != "" else ""
 	if Time.get_ticks_msec() > message_until: news.text = ""
-	note.text = "WASD ou setas para andar · Shift para correr · Roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nSirva Lia na mesa ou entregue o prato na feira."
+	note.text = "WASD ou setas para andar · Shift para correr · Roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nSirva as crianças na mesa ou entregue o prato na feira."
 	book.text = "Receitas descobertas: %s\nRefeições servidas: %d   ·   Entregas: %d   ·   Idas à escola: %d" % [", ".join(s.book) if not s.book.is_empty() else "—",s.served,s.sales,s.trips]
 
 func net_status(message: String, in_session: bool) -> void:

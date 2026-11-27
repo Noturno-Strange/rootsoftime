@@ -6,6 +6,7 @@ var step := 0.0
 var last_dir := Vector2.DOWN
 var child := false
 var female := false
+var kid_index := 0
 var eating := false
 var activity := ""
 var action_time := 0.0
@@ -46,7 +47,12 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 		var frame := clampi(int((0.68-action_time)*4/0.68),0,3)
 		if not female: key = activity + str(frame)
 		height *= [1.0,0.87,0.74,0.94][frame] if activity == "pick" else 1.0
-	if child and eating: height = 38
+	if child:
+		key = "kid%d%d" % [kid_index,int(step)%4 if moving else 1]
+		if eating and kid_index == 0: key = "eat"+str(int(Time.get_ticks_msec()/280.0)%4)
+		if eating and kid_index == 0: height = 38
+	elif item != "" and action_time <= 0:
+		key = ("load_f" if female else "load_m")+str(int(step)%4 if moving else 1)
 	if facing_key != key:
 		art.paint(figure,key,height)
 		facing_key = key
@@ -57,4 +63,5 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 		cargo.visible = held != ""
 		if cargo.visible:
 			art.paint(cargo,preload("res://systems/farm.gd").ICON.get(item,"meal"),22)
-	cargo.position.x = -12 if figure.flip_h else 12
+	cargo.visible = item != "" and action_time <= 0
+	cargo.position = Vector2(-8 if figure.flip_h else 8,-39+figure.position.y)
