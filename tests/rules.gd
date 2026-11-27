@@ -17,6 +17,19 @@ func run() -> void:
 	var village := preload("res://scenes/village.tscn").instantiate()
 	root.add_child(village)
 	await physics_frame
+	var wheel := InputEventMouseButton.new()
+	wheel.pressed = true
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	var initial_zoom: Vector2 = village.camera.zoom
+	village._input(wheel)
+	check(village.hud.tool_id == 3 and village.camera.zoom == initial_zoom,"Roda volta ao cesto")
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	village._input(wheel)
+	check(village.hud.tool_id == 0,"Roda avança à enxada")
+	wheel.ctrl_pressed = true
+	village._input(wheel)
+	check(village.hud.tool_id == 0 and village.camera.zoom.x < initial_zoom.x,"Ctrl e roda ajustam zoom")
+	village.camera.zoom = initial_zoom
 	check(village.kids.size() == 4,"Quatro crianças")
 	for goal: Vector2 in village.play_points:
 		check(not village.paths.route(village.land.CHILD_HOME,goal).is_empty(),"Trilha de brincadeira")

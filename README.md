@@ -21,7 +21,8 @@ godot
 | Shift | Correr |
 | E ou F | Usar a estação ou o canteiro próximo |
 | Clique esquerdo | Usar o alvo próximo apontado |
-| Roda do mouse | Aproximar ou afastar a câmera |
+| Roda do mouse | Alternar a ferramenta equipada |
+| Ctrl + roda do mouse | Aproximar ou afastar a câmera |
 | Esc | Abrir o caderno, consultar receitas, entrar em uma sala ou ajustar opções |
 
 O caderno mostra combinações de ingredientes. Na bancada, deixe o primeiro, busque o segundo e volte para misturá-los. É possível retirar um ingrediente depositado por engano. A mesa compartilhada ao lado do baú aceita quatro porções. Use E com o cesto carregado para apoiar uma porção. Com o cesto vazio, E retira a última porção colocada. Todos os jogadores veem e podem retirar o conteúdo. O baú guarda o conteúdo do cesto e devolve primeiro o último item guardado.

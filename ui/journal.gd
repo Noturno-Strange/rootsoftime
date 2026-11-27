@@ -8,6 +8,8 @@ signal chat_requested(message: String)
 signal remap_requested
 const Farm = preload("res://systems/farm.gd")
 const TOOL_NAMES := ["Enxada","Sementes","Regador","Cesto"]
+const TOOL_ICONS := ["hoe","seedling","can","basket"]
+var tool_flash: Tween
 var tool_id := 0
 var kit := ColorRect.new()
 var slots: Array[Button] = []
@@ -155,6 +157,9 @@ func _ready() -> void:
 	tools.offset_right = -24
 	tools.offset_top = 20
 	kit_button = button(tools,"Enxada   [B]",open_tools)
+	kit_button.icon = art.textures[TOOL_ICONS[0]]
+	kit_button.add_theme_constant_override("icon_max_width",32)
+	kit_button.tooltip_text = "Roda para trocar · Ctrl + roda para zoom"
 	build_kit(theme)
 	button(tools,"Caderno   Esc",toggle)
 	var pouch := panel(base,true)
@@ -465,7 +470,7 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 		if stage == 3: task_detail.text += " · %d s" % maxi(0,ceili(float(plot.ready)-float(s.time)))
 	task_detail.visible = task_detail.text != ""
 	if Time.get_ticks_msec() > message_until: news.text = ""
-	note.text = "WASD ou setas para andar · Shift para correr · Roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nSirva as crianças na mesa ou entregue o prato na feira."
+	note.text = "WASD ou setas para andar · Shift para correr\nRoda para trocar ferramenta · Ctrl + roda para zoom\nPrepare, plante e regue um canteiro. Leve o milho ao moinho,\nretire o fubá e cozinhe o angu no fogão junto à casa.\nSirva as crianças na mesa ou entregue o prato na feira."
 	book.text = "Receitas descobertas: %s\nRefeições servidas: %d   ·   Entregas: %d   ·   Idas à escola: %d" % [", ".join(s.book) if not s.book.is_empty() else "—",s.served,s.sales,s.trips]
 
 func net_status(message: String, in_session: bool) -> void:
@@ -504,11 +509,10 @@ func build_kit(theme: Theme) -> void:
 	grid.add_theme_constant_override("h_separation",8)
 	grid.add_theme_constant_override("v_separation",8)
 	column.add_child(grid)
-	var icons := ["hoe","seedling","can","basket"]
 	var uses := ["Preparar a terra","Plantar no canteiro","Regar o plantio","Recolher a colheita"]
 	for i in TOOL_NAMES.size():
 		var slot := button(grid,"",func() -> void: equip_tool(i))
-		slot.icon = art.textures[icons[i]]
+		slot.icon = art.textures[TOOL_ICONS[i]]
 		slot.add_theme_constant_override("icon_max_width",44)
 		slot.custom_minimum_size = Vector2(240,80)
 		slot.tooltip_text = uses[i]
@@ -531,7 +535,12 @@ func close_tools() -> void:
 
 func equip_tool(index: int) -> void:
 	tool_id = index
-	close_tools()
+	if kit.visible: close_tools()
+	kit_button.icon = art.textures[TOOL_ICONS[index]]
+	if tool_flash: tool_flash.kill()
+	kit_button.modulate = Color("#ffe19a")
+	tool_flash = kit_button.create_tween()
+	tool_flash.tween_property(kit_button,"modulate",Color.WHITE,0.38)
 	kit_button.text = "%s   [B]" % TOOL_NAMES[index]
 	status("%s em uso." % TOOL_NAMES[index])
 

@@ -305,8 +305,13 @@ func _input(event: InputEvent) -> void:
 			use_target()
 	if event is InputEventMouseButton and event.pressed and not hud.page.visible and not hud.kit.visible:
 		if event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
-			var z := camera.zoom.x + (0.1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -0.1)
-			camera.zoom = Vector2.ONE*clampf(z,0.86,1.75)
+			var step := 1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1
+			if event.ctrl_pressed:
+				var z := clampf(camera.zoom.x-step*0.1,0.86,1.75)
+				camera.zoom = Vector2.ONE*z
+			else:
+				hud.equip_tool(posmod(hud.tool_id+step,hud.TOOL_NAMES.size()))
+			get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if hud.cover.visible: return
