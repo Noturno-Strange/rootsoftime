@@ -26,6 +26,7 @@ jobs:
       - name: Validar e empacotar
         run: |
           bash tests/run.sh
+          xvfb-run -a godot --audio-driver Dummy --max-fps 60 --script tests/visual.gd -- --test
           mkdir -p build
           godot --headless --editor --import
           godot --headless --export-release Linux

@@ -21,6 +21,13 @@ const Farm = preload("res://systems/farm.gd")
 var dropped: Dictionary = {}
 var fruit_shadows: Dictionary = {}
 const BOOTHS := ["market","fruit_stall","grain_stall","dairy_stall"]
+const FEIRANTES := {
+	"market": [Vector2(101,266),Vector2(107,200),Vector2(140,173),Vector2(164,166),Vector2(151,148),Vector2(163,119),Vector2(182,101),Vector2(214,100),Vector2(229,120),Vector2(232,150),Vector2(217,169),Vector2(242,181),Vector2(273,253),Vector2(271,271)],
+	"fruit_stall": [Vector2(511,266),Vector2(519,201),Vector2(539,167),Vector2(578,151),Vector2(578,142),Vector2(553,139),Vector2(551,124),Vector2(563,110),Vector2(578,100),Vector2(584,81),Vector2(612,79),Vector2(627,94),Vector2(651,96),Vector2(653,110),Vector2(632,134),Vector2(629,149),Vector2(659,162),Vector2(694,207),Vector2(702,248),Vector2(686,268)],
+	"grain_stall": [Vector2(938,261),Vector2(936,209),Vector2(952,179),Vector2(976,169),Vector2(953,160),Vector2(948,132),Vector2(965,108),Vector2(984,93),Vector2(1013,93),Vector2(1032,108),Vector2(1032,147),Vector2(1020,163),Vector2(1048,170),Vector2(1071,198),Vector2(1081,239),Vector2(1045,264)],
+	"dairy_stall": [Vector2(1302,263),Vector2(1321,215),Vector2(1355,169),Vector2(1394,152),Vector2(1367,149),Vector2(1360,132),Vector2(1371,114),Vector2(1391,100),Vector2(1401,83),Vector2(1425,80),Vector2(1440,91),Vector2(1465,92),Vector2(1479,105),Vector2(1476,120),Vector2(1451,140),Vector2(1448,157),Vector2(1478,165),Vector2(1523,207),Vector2(1554,241),Vector2(1579,260),Vector2(1577,272)]
+}
+var residents: Dictionary = {}
 var merchants: Dictionary = {}
 var shoppers: Array[Node2D] = []
 var last_purchase: Array[int] = []
@@ -253,15 +260,23 @@ func build_fair() -> void:
 		display.add_child(stand)
 		stand.setup(art,site[1],site[4])
 		obstacle(stand,45,23)
-		var seller := preload("res://systems/actor.gd").new()
+		var seller := CharacterBody2D.new()
 		seller.name = Farm.STALL_NAMES[key].get_slice(" · ",0)
-		seller.appearance = site[3]
-		seller.position = stand.position+Vector2(66,2)
+		seller.position = stand.position-Vector2(0,1)
 		display.add_child(seller)
-		seller.setup(art)
+		var figure := Polygon2D.new()
+		var source: AtlasTexture = art.textures[site[1]]
+		var cut := PackedVector2Array(FEIRANTES[key])
+		figure.texture = source.atlas
+		figure.uv = cut
+		var center_x := source.region.get_center().x
+		for i in cut.size():
+			cut[i] = (cut[i]-Vector2(center_x,272))*0.31-Vector2(0,36)
+		figure.polygon = cut
+		seller.add_child(figure)
 		merchants[key] = seller
 		visuals[key] = seller
-		anchors[key] = seller.position+Vector2(0,9)
+		anchors[key] = stand.position+Vector2(0,15)
 	visuals.homestead = place("board",Vector2(805,1314),63,22)
 	anchors.homestead = visuals.homestead.position+Vector2(0,18)
 	deed_label.position = Vector2(-32,-56)
@@ -289,11 +304,6 @@ func build_fair() -> void:
 		last_purchase.append(-1)
 
 func update_fair(farm: RefCounted, dt: float, viewer: Vector2, sound: RefCounted) -> void:
-	for key: String in merchants:
-		var seller = merchants[key]
-		var relative := viewer - Vector2(seller.position)
-		seller.last_dir = Vector2(signf(relative.x),0) if relative.length() < 110 else Vector2.LEFT
-		seller.pose(Vector2.ZERO,dt,"")
 	for key: String in animals:
 		var animal: Node2D = animals[key]
 		animal.visible = farm.state.stock.has(key)
@@ -338,6 +348,8 @@ func build_orchard() -> void:
 		["cook",Vector2(2222,669)], ["healer",Vector2(2342,481)]]:
 		var key: String = site[0]
 		visuals[key] = place(key,site[1],88,10)
+		for child: Node in visuals[key].get_children():
+			if child is Sprite2D and child.texture == art.textures[key]: residents[key] = child
 		anchors[key] = site[1]+Vector2(0,14)
 	var spots := {"pequi_drop":Vector2(1614,489),"lime_drop":Vector2(1821,422),"acerola_drop":Vector2(1857,688)}
 	for key: String in spots:
@@ -401,3 +413,11 @@ func refresh(farm: RefCounted) -> void:
 		if p.crop != 0 and stage < 4: key = ["seedling","rootbud","ricebud","beanbud"][int(p.crop)]
 		if p.crop == 0 and stage < 4: key = "young" if stage == 3 else "seedling"
 		art.paint(plants[i],key,height)
+
+func face_speaker(key: String, where: Vector2) -> void:
+	if residents.has(key):
+		var portrait: Sprite2D = residents[key]
+		portrait.flip_h = where.x < portrait.global_position.x
+	elif merchants.has(key):
+		var seller: Node2D = merchants[key]
+		seller.get_child(0).scale.x = -1 if where.x < seller.position.x else 1

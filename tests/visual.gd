@@ -80,6 +80,15 @@ func run() -> void:
 	for kid in village.kids:
 		if not kid.visible or not village.land.inside_building("school",kid.position): failed = true
 	await snap("sala_de_aula")
+	village.hud.show_dialogue("teacher","Professora Célia · A turma está em aula.")
+	await snap("conversa")
+	if not village.hud.dialogue.visible or village.hud.speech.text != "A turma está em aula.": failed = true
+	village.hud.close_dialogue()
+	village.hud.open_tools()
+	village.hud.browse_tool(1)
+	await snap("carrossel")
+	village.hud.tool_card.pressed.emit()
+	if village.hud.kit.visible: failed = true
 	village.hud.toggle()
 	village.hud.tabs.current_tab = 1
 	await snap("caderno")

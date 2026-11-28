@@ -287,9 +287,19 @@ func peer_out(id: int) -> void:
 
 func _input(event: InputEvent) -> void:
 	if not is_node_ready() or hud.cover.visible: return
+	if hud.dialogue.visible and event is InputEventKey and event.pressed and not event.echo and event.keycode in [interact_key,KEY_F,KEY_ESCAPE,KEY_ENTER,KEY_SPACE]:
+		hud.close_dialogue()
+		get_viewport().set_input_as_handled()
+		return
+	if hud.kit.visible and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+		hud.browse_tool(-1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1)
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if hud.kit.visible:
 			if event.keycode in [KEY_ESCAPE,KEY_B]: hud.close_tools()
+			elif event.keycode in [KEY_LEFT,KEY_RIGHT]: hud.browse_tool(-1 if event.keycode == KEY_LEFT else 1)
+			elif event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]: hud.equip_tool(hud.preview_tool)
 			elif event.keycode >= KEY_1 and event.keycode <= KEY_4: hud.equip_tool(event.keycode-KEY_1)
 			else: return
 			get_viewport().set_input_as_handled()
@@ -320,7 +330,7 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if hud.cover.visible: return
+	if hud.cover.visible or hud.dialogue.visible: return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and not hud.page.visible and not hud.kit.visible:
 		var selected := land.nearest(get_global_mouse_position())
 		if selected != "" and selected == target: use_target()
@@ -381,10 +391,12 @@ func report_blocked(reason: String) -> void:
 
 @rpc("authority","call_remote","reliable")
 func feedback(id: int, key: String, message: String, kind: String) -> void:
-	if multiplayer.get_unique_id() == id: hud.status(message)
 	if kind == "voice":
+		if actors.has(id): land.face_speaker(key,actors[id].position)
+		if multiplayer.get_unique_id() == id: hud.show_dialogue(key,message)
 		sound.play(self,land.anchors[key],kind,-16)
 		return
+	if multiplayer.get_unique_id() == id: hud.status(message)
 	if actors.has(id):
 		var worker: Actor = actors[id]
 		worker.activity = "pour" if kind == "water" else ("hoe" if message == "Terra preparada." else "pick")
@@ -478,7 +490,7 @@ func show_chat(line: String) -> void:
 	if not hud.page.visible: hud.status(line)
 
 func local_direction() -> Vector2:
-	if hud.cover.visible or hud.kit.visible or hud.page.visible or not get_window().has_focus() and not test_mode: return Vector2.ZERO
+	if hud.dialogue.visible or hud.cover.visible or hud.kit.visible or hud.page.visible or not get_window().has_focus() and not test_mode: return Vector2.ZERO
 	var left := Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT)
 	var right := Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT)
 	var up := Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP)

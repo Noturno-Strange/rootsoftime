@@ -58,6 +58,19 @@ func run() -> void:
 		var merchant: CharacterBody2D = village.land.merchants[stall]
 		check(village.land.nearest(merchant.position) == stall,"Atendimento junto a "+str(merchant.name))
 		check(visitor.act(1,stall) == Farm.GREETINGS[stall] and visitor.state.coins == 0,"Conversa sem alterar saldo em "+stall)
+	village.hud.open_tools()
+	var equipped: int = village.hud.tool_id
+	village.hud.browse_tool(-1)
+	check(village.hud.preview_tool == posmod(equipped-1,4) and village.hud.tool_id == equipped,"Carrossel volta sem equipar")
+	village.hud.tool_card.pressed.emit()
+	check(not village.hud.kit.visible and village.hud.tool_id == posmod(equipped-1,4),"Equipar pelo carrossel fecha o baú")
+	village.hud.equip_tool(equipped)
+	for key: String in village.land.residents:
+		var face: Sprite2D = village.land.residents[key]
+		village.land.face_speaker(key,face.global_position-Vector2.RIGHT*30)
+		check(face.flip_h,"Morador olha para a esquerda: "+key)
+		village.land.face_speaker(key,face.global_position+Vector2.RIGHT*30)
+		check(not face.flip_h,"Morador olha para a direita: "+key)
 	var wheel := InputEventMouseButton.new()
 	wheel.pressed = true
 	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
@@ -94,7 +107,7 @@ func run() -> void:
 	player.position = desk
 	village.land.reveal_rooms(desk,1)
 	check(village.land.teacher.visible and village.land.nearest(desk) == "teacher", "Professora acessível dentro da sala")
-	check(village.perform(1,"teacher") and "Célia" in village.hud.news.text, "Conversa na escola")
+	check(village.perform(1,"teacher") and village.hud.dialogue.visible and "Célia" in village.hud.speaker.text and village.hud.portrait.texture != null, "Conversa na escola")
 	player.position = Vector2(desk.x,school.y+14)
 	check(not village.perform(1,"teacher") and village.land.nearest(player.position) != "teacher", "Sem conversa através da parede")
 	var class_farm := Farm.new()

@@ -13,7 +13,14 @@ var tool_flash: Tween
 var levels_in_use := [1,1,1,1]
 var tool_id := 0
 var kit := ColorRect.new()
-var slots: Array[Button] = []
+var preview_tool := 0
+var tool_card: Button
+var tool_usage: Label
+var dialogue: PanelContainer
+var portrait := TextureRect.new()
+var speaker: Label
+var speech: Label
+const SPEAKERS := {"market":"Dona Dica","fruit_stall":"Bento","grain_stall":"Luzia","dairy_stall":"Zeca","teacher":"Professora Célia","gardener":"Horticultora","weaver":"Artesão","cook":"Cozinheira","healer":"Pajé"}
 var task_meter := ProgressBar.new()
 var task_detail: Label
 var kit_button: Button
@@ -202,6 +209,7 @@ func _ready() -> void:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_color_override("font_outline_color",Color("#403b2a"))
 		l.add_theme_constant_override("outline_size",5)
+	build_dialogue()
 	page = panel(base)
 	var binding := StyleBoxTexture.new()
 	binding.texture = preload("res://assets/book.webp")
@@ -310,7 +318,6 @@ func _ready() -> void:
 		card.toggle_mode = true
 		card.button_group = group
 		card.custom_minimum_size = Vector2(174,61)
-		card.add_theme_stylebox_override("pressed",box(Color("#36563a"),Color("#d79e38"),10))
 		card.icon = art.textures[PORTRAITS[i]]
 		card.add_theme_constant_override("icon_max_width",40)
 		cards.append(card)
@@ -376,6 +383,7 @@ func _ready() -> void:
 	key_button = button(audio,"Tecla de interação",func() -> void: remap_requested.emit())
 	button(actions,"Voltar à vila",toggle)
 	button(actions,"Sair do jogo",exit_game)
+	style_notebook()
 	page.hide()
 	page.visibility_changed.connect(func() -> void:
 		for widget in [almanac,requests,tools,pouch,context]: widget.visible = not page.visible)
@@ -461,6 +469,7 @@ func enter_village(tab: int) -> void:
 		page.show()
 
 func toggle() -> void:
+	dialogue.hide()
 	page.visible = not page.visible
 	if not page.visible: base.get_viewport().gui_release_focus()
 
@@ -544,29 +553,33 @@ func build_kit(theme: Theme) -> void:
 	chest_icon.custom_minimum_size = Vector2(62,44)
 	heading.add_child(chest_icon)
 	label(heading,"Baú de ferramentas",30,INK,true)
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation",8)
-	grid.add_theme_constant_override("v_separation",8)
-	column.add_child(grid)
-	var uses := ["Preparar a terra","Plantar no canteiro","Regar o plantio","Recolher a colheita"]
-	for i in TOOL_NAMES.size():
-		var slot := button(grid,"",func() -> void: equip_tool(i))
-		slot.icon = art.textures[TOOL_ICONS[i]]
-		slot.add_theme_constant_override("icon_max_width",44)
-		slot.custom_minimum_size = Vector2(240,80)
-		slot.tooltip_text = uses[i]
-		slots.append(slot)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_child(row)
+	button(row,"‹",func() -> void: browse_tool(-1)).tooltip_text = "Ferramenta anterior"
+	tool_card = button(row,"",func() -> void: equip_tool(preview_tool))
+	tool_card.custom_minimum_size = Vector2(270,130)
+	tool_card.add_theme_constant_override("icon_max_width",72)
+	button(row,"›",func() -> void: browse_tool(1)).tooltip_text = "Próxima ferramenta"
+	tool_usage = label(column,"",18)
+	tool_usage.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label(column,"← → ou roda para folhear · Enter para equipar",16)
 	button(column,"Voltar à vila   [Esc]",close_tools)
 	kit.hide()
 
+func browse_tool(direction: int) -> void:
+	preview_tool = posmod(preview_tool+direction,TOOL_NAMES.size())
+	tool_card.icon = art.textures[TOOL_ICONS[preview_tool]]
+	tool_card.text = "%s\nNível %d" % [TOOL_NAMES[preview_tool],levels_in_use[preview_tool]]
+	tool_usage.text = ["Preparar a terra","Plantar sementes","Regar o canteiro","Recolher a colheita"][preview_tool]
+
 func open_tools() -> void:
+	dialogue.hide()
 	base.hide()
 	kit.show()
-	for i in slots.size():
-		slots[i].text = "%d   %s · Nv. %d%s" % [i+1,TOOL_NAMES[i],levels_in_use[i],"\nEm uso" if i == tool_id else ""]
-		slots[i].add_theme_stylebox_override("normal",box(Color("#3c5634") if i == tool_id else Color("#88482c"),Color("#bc9762"),12))
-	slots[tool_id].grab_focus()
+	preview_tool = tool_id
+	browse_tool(0)
+	tool_card.grab_focus()
 
 func close_tools() -> void:
 	kit.hide()
@@ -593,7 +606,7 @@ func show_recipe(index: int) -> void:
 		if dishes[i].visible:
 			dishes[i].text = catalog[n]
 			dishes[i].icon = art.textures[Farm.ICON[catalog[n]]]
-			dishes[i].add_theme_stylebox_override("normal",box(Color("#39563a") if n == current_recipe else Color("#874628"),Color("#ba9660"),8))
+			dishes[i].add_theme_color_override("font_color",Color("#94401f") if n == current_recipe else INK)
 	page_text.text = "%d / %d" % [leaf+1,ceili(catalog.size()/4.0)]
 	back_page.disabled = leaf == 0
 	next_page.disabled = (leaf+1)*4 >= catalog.size()
@@ -610,3 +623,72 @@ func recipe_steps(product: String) -> PackedStringArray:
 		for ingredient: String in entry[1]: lines.append_array(recipe_steps(ingredient))
 		lines.append("%s · %s → %s" % [entry[0]," + ".join(entry[1]),product])
 	return lines
+
+func style_notebook() -> void:
+	var face := FontVariation.new()
+	face.base_font = reading_face
+	face.variation_embolden = 0.65
+	var paper := StyleBoxEmpty.new()
+	for side in [SIDE_LEFT,SIDE_RIGHT]: paper.set_content_margin(side,6)
+	for side in [SIDE_TOP,SIDE_BOTTOM]: paper.set_content_margin(side,5)
+	var underline := StyleBoxFlat.new()
+	underline.draw_center = false
+	underline.border_width_bottom = 2
+	underline.border_color = Color("#94512d")
+	for side in [SIDE_LEFT,SIDE_RIGHT,SIDE_TOP,SIDE_BOTTOM]:
+		underline.set_content_margin(side,paper.get_content_margin(side))
+	for entry in page.find_children("*","Button",true,false):
+		var link := entry as Button
+		link.add_theme_font_override("font",face)
+		for state in ["normal","disabled"]: link.add_theme_stylebox_override(state,paper)
+		for state in ["focus","hover","pressed","hover_pressed"]: link.add_theme_stylebox_override(state,underline)
+		for state in ["font_color","font_hover_color","font_focus_color","font_pressed_color","font_hover_pressed_color"]: link.add_theme_color_override(state,INK)
+		link.add_theme_color_override("font_disabled_color",Color("#716048"))
+	for group in [tabs,sections]:
+		group.add_theme_font_override("font",face)
+		for state in ["tab_selected","tab_hovered","tab_focus"]: group.add_theme_stylebox_override(state,underline)
+		group.add_theme_stylebox_override("tab_unselected",paper)
+		for state in ["font_selected_color","font_unselected_color","font_hovered_color"]: group.add_theme_color_override(state,INK)
+
+func build_dialogue() -> void:
+	dialogue = panel(base)
+	dialogue.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	dialogue.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	dialogue.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	dialogue.offset_bottom = -18
+	dialogue.custom_minimum_size.x = 430
+	var lines := VBoxContainer.new()
+	dialogue.add_child(lines)
+	portrait.custom_minimum_size = Vector2(96,80)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	lines.add_child(portrait)
+	speaker = label(lines,"",22,Color("#853d26"),true)
+	speech = label(lines,"",18)
+	speech.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for item in [speaker,speech]: item.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button(lines,"Voltar à vila",close_dialogue)
+	dialogue.hide()
+
+func close_dialogue() -> void:
+	dialogue.hide()
+	base.get_viewport().gui_release_focus()
+
+func show_dialogue(key: String, message: String) -> void:
+	if not SPEAKERS.has(key): return
+	var image_key := key+"_portrait"
+	if art.textures.has(image_key):
+		portrait.texture = art.textures[image_key]
+	else:
+		var original: AtlasTexture = art.textures[key]
+		var head := AtlasTexture.new()
+		head.atlas = original.atlas
+		var height := original.region.size.y*0.34
+		head.region = Rect2(original.region.position,Vector2(original.region.size.x,height))
+		head.filter_clip = true
+		portrait.texture = head
+	speaker.text = SPEAKERS[key]
+	speech.text = message.substr(message.find(" · ")+3) if " · " in message else message
+	news.text = ""
+	dialogue.show()
+	dialogue.move_to_front()

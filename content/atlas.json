@@ -1545,5 +1545,33 @@
   4,
   152,
   113
+ ],
+ "market_portrait": [
+  "feira",
+  145,
+  99,
+  105,
+  100
+ ],
+ "fruit_stall_portrait": [
+  "feira",
+  551,
+  78,
+  105,
+  111
+ ],
+ "grain_stall_portrait": [
+  "feira",
+  941,
+  91,
+  115,
+  105
+ ],
+ "dairy_stall_portrait": [
+  "feira",
+  1360,
+  80,
+  126,
+  112
  ]
 }
