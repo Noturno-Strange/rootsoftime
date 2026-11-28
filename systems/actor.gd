@@ -4,6 +4,7 @@ const FEMALE_RIM := [Vector2(12.28,-51.68), Vector2(4.30,-50.11), Vector2(6.73,-
 var art: RefCounted
 var figure: Sprite2D
 var cargo: Sprite2D
+var basket_opening := Polygon2D.new()
 var step := 0.0
 var last_dir := Vector2.DOWN
 var child := false
@@ -31,7 +32,9 @@ func setup(atlas: RefCounted, little: bool = false) -> void:
 	cargo = atlas.sprite("basket",22)
 	cargo.visible = false
 	cargo.position = Vector2(11,-15)
-	add_child(cargo)
+	basket_opening.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
+	add_child(basket_opening)
+	basket_opening.add_child(cargo)
 
 func pose(motion: Vector2, delta: float, item: String) -> void:
 	var female := appearance == 1 or appearance == 3
@@ -66,17 +69,27 @@ func pose(motion: Vector2, delta: float, item: String) -> void:
 		facing_key = key
 	figure.flip_h = last_dir.x < -0.12
 	figure.position.y = -absf(sin(step))*1.4 if moving else 0
-	if held != item:
+	var compact := appearance >= 2
+	if held != item or compact != basket_opening.has_meta("compact"):
+		if compact: basket_opening.set_meta("compact",true)
+		elif basket_opening.has_meta("compact"): basket_opening.remove_meta("compact")
 		held = item
 		cargo.visible = held != ""
 		if cargo.visible:
 			var icon: String = preload("res://systems/farm.gd").ICON[item]
 			var tex: Texture2D = art.textures[icon]
-			art.paint(cargo,icon,minf(12,24*tex.get_height()/tex.get_width()))
+			var width := 13.0 if appearance >= 2 else 21.0
+			art.paint(cargo,icon,minf(15.0,width*tex.get_height()/tex.get_width()))
 	cargo.visible = item != "" and action_time <= 0
 	var frame_index := int(step)%4 if moving else 1
 	var rim: Vector2 = FEMALE_RIM[frame_index] if female else MALE_RIM[frame_index]
 	if appearance >= 2:
 		var basket_x := [5.6,5.5,10.8,9.6]
 		rim = Vector2(basket_x[frame_index if moving else 0],-55 if appearance == 2 else -54)
-	cargo.position = Vector2(-rim.x if figure.flip_h else rim.x,rim.y+3.5+figure.position.y)
+	basket_opening.position = Vector2(-rim.x if figure.flip_h else rim.x,rim.y+figure.position.y)
+	if basket_opening.polygon.is_empty():
+		basket_opening.polygon = PackedVector2Array([Vector2(-1,-20),Vector2(1,-20),Vector2(1,-0.4),Vector2(0.8,0.7),Vector2(0.4,1.35),Vector2(0,1.5),Vector2(-0.4,1.35),Vector2(-0.8,0.7),Vector2(-1,-0.4)])
+	var opening_width := 7.0 if compact else 12.0
+	basket_opening.scale.x = opening_width
+	cargo.scale.x = cargo.scale.y/opening_width
+	cargo.position = Vector2(0,clampf(cargo.scale.y*cargo.texture.get_height()*0.48,3,7))

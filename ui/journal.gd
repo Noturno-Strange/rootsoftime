@@ -213,11 +213,11 @@ func _ready() -> void:
 	page = panel(base)
 	var binding := StyleBoxTexture.new()
 	binding.texture = preload("res://assets/book.webp")
-	for side in [SIDE_LEFT,SIDE_RIGHT]: binding.set_content_margin(side,70)
-	binding.set_content_margin(SIDE_TOP,54)
-	binding.set_content_margin(SIDE_BOTTOM,48)
+	for side in [SIDE_LEFT,SIDE_RIGHT]: binding.set_content_margin(side,84)
+	binding.set_content_margin(SIDE_TOP,65)
+	binding.set_content_margin(SIDE_BOTTOM,60)
 	page.add_theme_stylebox_override("panel",binding)
-	page.custom_minimum_size = Vector2(1090,510)
+	page.custom_minimum_size = Vector2(1140,560)
 	page.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	page.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	page.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -225,14 +225,15 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation",8)
 	var spread := HBoxContainer.new()
 	page.add_child(spread)
-	spread.add_theme_constant_override("separation",64)
-	spread.add_child(layout)
-	layout.custom_minimum_size.x = 458
+	spread.add_theme_constant_override("separation",72)
+	var left_leaf := book_leaf(spread)
+	left_leaf.add_child(layout)
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var illustration := VBoxContainer.new()
 	illustration.alignment = BoxContainer.ALIGNMENT_CENTER
 	illustration.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spread.add_child(illustration)
-	spread_art.custom_minimum_size = Vector2(230,215)
+	book_leaf(spread).add_child(illustration)
+	spread_art.custom_minimum_size = Vector2(175,156)
 	spread_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	spread_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	illustration.add_child(spread_art)
@@ -253,7 +254,7 @@ func _ready() -> void:
 	spread_art.texture = art.textures["home"]
 	spread_caption.text = "A vila"
 	label(layout,"Caderno da vila",34,Color("#61351f"),true)
-	tabs.custom_minimum_size = Vector2(450,300)
+	tabs.custom_minimum_size = Vector2(394,278)
 	layout.add_child(tabs)
 	var village_tab := VBoxContainer.new()
 	village_tab.name = "Vila"
@@ -294,7 +295,7 @@ func _ready() -> void:
 	cookbook.add_child(plates)
 	for i in 4:
 		var card := button(plates,"",func() -> void: show_recipe((current_recipe/4)*4+i))
-		card.custom_minimum_size = Vector2(210,50)
+		card.custom_minimum_size = Vector2(182,44)
 		card.add_theme_constant_override("icon_max_width",40)
 		dishes.append(card)
 	var pages := HBoxContainer.new()
@@ -650,24 +651,36 @@ func style_notebook() -> void:
 		group.add_theme_stylebox_override("tab_unselected",paper)
 		for state in ["font_selected_color","font_unselected_color","font_hovered_color"]: group.add_theme_color_override(state,INK)
 
+func book_leaf(spread: HBoxContainer) -> ScrollContainer:
+	var leaf := ScrollContainer.new()
+	leaf.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	leaf.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	leaf.custom_minimum_size.y = 405
+	spread.add_child(leaf)
+	return leaf
+
 func build_dialogue() -> void:
 	dialogue = panel(base)
-	dialogue.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	dialogue.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	dialogue.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	dialogue.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	dialogue.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	dialogue.offset_bottom = -18
-	dialogue.custom_minimum_size.x = 430
+	dialogue.offset_right = -16
+	dialogue.offset_bottom = -16
+	dialogue.custom_minimum_size.x = 314
 	var lines := VBoxContainer.new()
 	dialogue.add_child(lines)
-	portrait.custom_minimum_size = Vector2(96,80)
+	var heading := HBoxContainer.new()
+	lines.add_child(heading)
+	portrait.custom_minimum_size = Vector2(42,44)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	lines.add_child(portrait)
-	speaker = label(lines,"",22,Color("#853d26"),true)
-	speech = label(lines,"",18)
+	heading.add_child(portrait)
+	speaker = label(heading,"",18,Color("#853d26"),true)
+	speaker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var close := button(heading,"×",close_dialogue)
+	close.tooltip_text = "Fechar conversa (Esc)"
+	speech = label(lines,"",16)
 	speech.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	for item in [speaker,speech]: item.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button(lines,"Voltar à vila",close_dialogue)
 	dialogue.hide()
 
 func close_dialogue() -> void:

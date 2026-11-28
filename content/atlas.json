@@ -1547,31 +1547,59 @@
   113
  ],
  "market_portrait": [
-  "feira",
-  145,
-  99,
-  105,
-  100
+  "feirantes",
+  10,
+  4,
+  130,
+  113
  ],
  "fruit_stall_portrait": [
-  "feira",
-  551,
-  78,
-  105,
-  111
+  "feirantes",
+  162,
+  4,
+  125,
+  113
  ],
  "grain_stall_portrait": [
-  "feira",
-  941,
-  91,
-  115,
-  105
+  "feirantes",
+  310,
+  4,
+  130,
+  113
  ],
  "dairy_stall_portrait": [
-  "feira",
-  1360,
-  80,
-  126,
-  112
+  "feirantes",
+  462,
+  4,
+  125,
+  113
+ ],
+ "market_seller": [
+  "feirantes",
+  10,
+  4,
+  130,
+  390
+ ],
+ "fruit_stall_seller": [
+  "feirantes",
+  162,
+  4,
+  125,
+  390
+ ],
+ "grain_stall_seller": [
+  "feirantes",
+  310,
+  4,
+  130,
+  390
+ ],
+ "dairy_stall_seller": [
+  "feirantes",
+  462,
+  4,
+  125,
+  390
  ]
 }
