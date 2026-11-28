@@ -31,6 +31,15 @@ func run() -> void:
 		if village.hud.kit.visible or village.hud.page.visible or not village.hud.base.visible: failed = true
 	village.farm.state.time = original_time
 	var farmer: CharacterBody2D = village.actors[1]
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	village._input(wheel)
+	await create_timer(0.18).timeout
+	await snap("roda-0.0.29")
+	if not village.hud.wheel_panel.visible or village.hud.wheel_icons[1].texture != village.hud.kit_button.icon: failed = true
+	await create_timer(1.0).timeout
+	if village.hud.wheel_panel.visible: failed = true
 	var corn: Vector2 = village.land.anchors["plot0"]
 	farmer.position = corn+Vector2(0,22)
 	for i in range(3):

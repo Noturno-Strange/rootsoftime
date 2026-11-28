@@ -9,7 +9,10 @@ signal remap_requested
 const Farm = preload("res://systems/farm.gd")
 const TOOL_NAMES := ["Enxada","Sementes","Regador","Cesto"]
 const TOOL_ICONS := ["hoe","seedling","can","basket"]
-var tool_flash: Tween
+var wheel_panel := Panel.new()
+var wheel_icons: Array[TextureRect] = []
+var wheel_motion: Tween
+var wheel_actor: Node2D
 var levels_in_use := [1,1,1,1]
 var tool_id := 0
 var kit := ColorRect.new()
@@ -144,6 +147,7 @@ func _ready() -> void:
 	add_child(base)
 	base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	build_wheel_feedback()
 	var almanac := panel(base)
 	almanac.position = Vector2(24,20)
 	var column := HBoxContainer.new()
@@ -591,12 +595,52 @@ func equip_tool(index: int) -> void:
 	tool_id = index
 	if kit.visible: close_tools()
 	kit_button.icon = art.textures[TOOL_ICONS[index]]
-	if tool_flash: tool_flash.kill()
-	kit_button.modulate = Color("#ffe19a")
-	tool_flash = kit_button.create_tween()
-	tool_flash.tween_property(kit_button,"modulate",Color.WHITE,0.38)
-	kit_button.text = "%s   [B]" % TOOL_NAMES[index]
-	status("%s em uso." % TOOL_NAMES[index])
+	kit_button.text = "%s · Nv. %d   [B]" % [TOOL_NAMES[index],levels_in_use[index]]
+
+func build_wheel_feedback() -> void:
+	base.add_child(wheel_panel)
+	wheel_panel.size = Vector2(108,38)
+	wheel_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wheel_panel.clip_contents = true
+	wheel_panel.add_theme_stylebox_override("panel",box(Color("#344433"),Color("#b99562"),0))
+	for i in 3:
+		var icon := TextureRect.new()
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.size = Vector2.ONE * (32 if i == 1 else 20)
+		icon.modulate.a = 1.0 if i == 1 else 0.65
+		wheel_panel.add_child(icon)
+		wheel_icons.append(icon)
+	wheel_panel.hide()
+
+func cycle_tool(direction: int, actor: Node2D) -> void:
+	equip_tool(posmod(tool_id+direction,TOOL_NAMES.size()))
+	wheel_actor = actor
+	if wheel_motion: wheel_motion.kill()
+	wheel_panel.modulate.a = 1.0
+	wheel_panel.show()
+	update_wheel_position()
+	wheel_motion = create_tween().set_parallel(true)
+	for i in wheel_icons.size():
+		var icon := wheel_icons[i]
+		icon.texture = art.textures[TOOL_ICONS[posmod(tool_id+i-1,TOOL_NAMES.size())]]
+		var slot := Vector2(54+(i-1)*34,19)-icon.size/2
+		icon.position = slot+Vector2(direction*14,0)
+		wheel_motion.tween_property(icon,"position",slot,0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	wheel_motion.chain().tween_interval(0.75)
+	wheel_motion.chain().tween_property(wheel_panel,"modulate:a",0.0,0.18)
+	wheel_motion.chain().tween_callback(wheel_panel.hide)
+
+func _process(_delta: float) -> void:
+	if wheel_panel.visible: update_wheel_position()
+
+func update_wheel_position() -> void:
+	if not is_instance_valid(wheel_actor) or page.visible or kit.visible or dialogue.visible or cover.visible:
+		wheel_panel.hide()
+		return
+	var head := wheel_actor.get_global_transform_with_canvas() * Vector2(0,-92)
+	wheel_panel.position = head-Vector2(wheel_panel.size.x/2,wheel_panel.size.y+5)
 
 func show_recipe(index: int) -> void:
 	current_recipe = clampi(index,0,catalog.size()-1)

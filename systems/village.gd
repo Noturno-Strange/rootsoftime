@@ -325,8 +325,8 @@ func _input(event: InputEvent) -> void:
 			if event.ctrl_pressed:
 				var z := clampf(camera.zoom.x-step*0.1,0.86,1.75)
 				camera.zoom = Vector2.ONE*z
-			else:
-				hud.equip_tool(posmod(hud.tool_id+step,hud.TOOL_NAMES.size()))
+			elif not hud.dialogue.visible and actors.has(multiplayer.get_unique_id()):
+				hud.cycle_tool(step,actors[multiplayer.get_unique_id()])
 			get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
