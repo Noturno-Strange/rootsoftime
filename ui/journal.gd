@@ -486,7 +486,7 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	carry_icon.texture = art.textures.get(farm.ICON.get(item,"meal") if item != "" else "basket")
 	carry.text = "Cesto  ·  " + (item if item != "" else "vazio")
 	hint.text = farm.prompt(me,target,tool_id) if target != "" else ""
-	var passive: bool = farm.hint_is_passive(me,target)
+	var passive: bool = farm.hint_is_passive(me,target,tool_id)
 	if not passive and not hint.text.is_empty(): hint.text = "["+key+"]  "+hint.text
 	var needed: int = farm.required_tool(target)
 	if not passive and needed >= 0 and needed != tool_id: hint.text = "[B] Equipar %s · %s" % [TOOL_NAMES[needed],farm.prompt(me,target,tool_id)]
@@ -498,7 +498,7 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 		var job: Dictionary = s.jobs[target]
 		var left := maxi(0,ceili(float(job.ready)-float(s.time)))
 		task_detail.text = "%s · %d s" % [job.product,left] if left > 0 else "%s pronto para retirar" % job.product
-	elif target.begins_with("plot"):
+	elif target.begins_with("plot") and (s.land or target.trim_prefix("plot").to_int() < 8):
 		var plot: Dictionary = s.plots[target.trim_prefix("plot").to_int()]
 		var stage := int(plot.stage)
 		task_detail.text = ["Preparar a terra","Plantar as sementes","Regar","Crescendo","Pronto para colher"][stage]
@@ -510,7 +510,7 @@ func refresh(farm: RefCounted, me: int, target: String, key: String) -> void:
 	task_detail.visible = task_detail.text != ""
 	if Time.get_ticks_msec() > message_until: news.text = ""
 	note.text = "WASD ou setas · andar     Shift · correr\nRoda · ferramenta     Ctrl + roda · zoom"
-	book.text = "Descobertas no caderno · %d\nRefeições · %d     Entregas · %d     Idas à escola · %d" % [s.book.size(),s.served,s.sales,s.trips]
+	book.text = "Descobertas no caderno · %d\nRefeições · %d     Vendas · %d     Idas à escola · %d" % [s.book.size(),s.served,s.sales,s.trips]
 	book.tooltip_text = ", ".join(s.book)
 
 func net_status(message: String, in_session: bool) -> void:

@@ -550,7 +550,7 @@ func _physics_process(dt: float) -> void:
 	for kid in kids:
 		kid.eating = farm.state.family == "eating"
 	land.reveal_rooms(viewer,dt)
-	for kid in kids: kid.visible = farm.state.family != "school"
+	for kid in kids: kid.visible = farm.state.family != "school" or land.interiors.school.visible
 	target = land.nearest(viewer)
 	highlight.visible = target != "" and not hud.page.visible
 	if highlight.visible: highlight.position = land.anchors[target]
@@ -590,14 +590,18 @@ func update_escort(dt: float) -> void:
 		var offset := Vector2((i%2)*29-15,(i/2)*22+9)
 		var goal := Layout.CHILD_HOME + offset
 		if phase == "school":
-			kid.position = Layout.CHILD_SCHOOL+offset
+			kid.position = Layout.SITES.school[0]+Vector2(-84+(i%2)*64,-44+(i/2)*36)
+			kid.pose(Vector2.ZERO,dt,"")
 			continue
+		if changed and phase == "back": kid.position = Layout.CHILD_SCHOOL+offset
 		if phase == "home":
 			var turn := float(farm.state.time)/6.5 + i*0.42
 			goal = play_points[(int(turn)+i)%play_points.size()]
 		elif phase in ["out","back"] and actors.has(farm.state.escort):
 			var spacing := Vector2([-44,39,-62,65][i],[30,39,69,78][i])
-			goal = actors[farm.state.escort].position+spacing
+			var leader: Vector2 = actors[farm.state.escort].position
+			var entrance: Vector2 = land.anchors.school if phase == "out" else land.anchors.home
+			goal = entrance+offset if leader.distance_to(entrance) < 68 else leader+spacing
 		elif phase == "eating":
 			kid.position = goal
 		if changed or farm.state.time >= deadlines.get(i,0.0):

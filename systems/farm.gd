@@ -261,9 +261,7 @@ func act(id: int, target: String, tool: int = 0) -> String:
 				hands[id] = first
 				state.bowl = ""
 				return "Ingrediente retirado."
-			var ingredients := [first,hand]
-			ingredients.sort()
-			var pair := "|".join(ingredients)
+			var pair := blend_key(first,hand)
 			if BLENDS.has(pair):
 				hands[id] = BLENDS[pair]
 				state.bowl = ""
@@ -342,7 +340,51 @@ func act(id: int, target: String, tool: int = 0) -> String:
 				return "Hora de voltar para casa."
 	return ""
 
-func hint_is_passive(id: int, target: String) -> bool:
+func blend_key(first: String, second: String) -> String:
+	var ingredients := [first,second]
+	ingredients.sort()
+	return "|".join(ingredients)
+
+func unavailable_reason(id: int, target: String, tool: int) -> String:
+	var hand: String = hands.get(id,"")
+	match target:
+		"well":
+			if state.water >= water_capacity(): return "Regador cheio"
+		"warehouse":
+			var level: int = state.levels[clampi(tool,0,3)]
+			if level >= 3: return "Ferramenta no nível máximo"
+			if state.coins < UPGRADE_COST[level]: return "Melhoria · %d de %d moedas" % [state.coins,UPGRADE_COST[level]]
+		"storage":
+			if hand.is_empty() and state.storage.is_empty(): return "Depósito vazio"
+		"tray":
+			if hand.is_empty() and state.tray.is_empty(): return "Mesa compartilhada vazia"
+			if not hand.is_empty() and state.tray.size() >= TRAY_CAPACITY: return "Mesa compartilhada cheia"
+		"mix":
+			if state.bowl == "" and hand == "": return "Tigela vazia · traga um ingrediente"
+			if state.bowl != "" and hand != "" and not BLENDS.has(blend_key(state.bowl,hand)): return "Essa mistura não combina · tigela com " + str(state.bowl)
+		"table":
+			if state.family != "home": return "Aguarde a família voltar à mesa"
+			if hand not in MEALS: return "Traga um prato pronto para servir"
+		"school":
+			if state.family == "school" and state.time < state.bell: return "Aula em andamento · %d s" % ceili(state.bell-state.time)
+			if state.family not in ["out","school"]: return "As crianças estão voltando para casa" if state.family == "back" else "Chame as crianças em casa"
+			if state.family == "out" and state.escort != id: return "Outro jogador acompanha a turma"
+		"home":
+			if state.family == "school": return "A turma está na escola"
+			if state.family == "out": return "Leve a turma à escola" if state.escort == id else "Outro jogador acompanha a turma"
+			if state.family == "back" and state.escort != id: return "Outro jogador acompanha a turma"
+			if state.family == "eating" and state.time < state.bell: return "As crianças estão comendo"
+		"hen","cow","orchard":
+			if hand != "": return "Esvazie o cesto para recolher"
+			var ready: float = state.fruit if target == "orchard" else state[target]
+			if state.time < ready: return "Aguarde a próxima coleta · %d s" % ceili(ready-state.time)
+	if FRUIT_SPOTS.has(target):
+		if state.time < state.fallen[target]: return "Aguardando outro fruto cair"
+		if hand != "": return "Esvazie o cesto para recolher"
+	return ""
+
+func hint_is_passive(id: int, target: String, tool: int = 0) -> bool:
+	if unavailable_reason(id,target,tool) != "": return true
 	var hand: String = hands.get(id,"")
 	if OFFERS.has(target): return not hand.is_empty() and not OFFERS[target].has(hand)
 	if target == "market": return not hand.is_empty() and market_payout(hand) <= 0
@@ -362,6 +404,8 @@ func hint_is_passive(id: int, target: String) -> bool:
 	return false
 
 func prompt(id: int, target: String, tool: int = 0) -> String:
+	var reason := unavailable_reason(id,target,tool)
+	if reason != "": return reason
 	var hand: String = hands.get(id, "")
 	if target == "homestead" or STOCK_PRICE.has(target): return homestead_prompt(id,target)
 	if OFFERS.has(target):
@@ -369,8 +413,7 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 		if OFFERS[target].has(hand): return "%s · vender %s por %d" % [STALL_NAMES[target],hand,OFFERS[target][hand]]
 		return "%s · compra %s" % [STALL_NAMES[target],", ".join(OFFERS[target].keys())]
 	if FRUIT_SPOTS.has(target):
-		if state.time < state.fallen[target]: return "Aguardando outro fruto cair"
-		return "Esvazie o cesto para recolher" if hand != "" else "Recolher %s do chão" % str(FRUIT_SPOTS[target]).to_lower()
+		return "Recolher %s do chão" % str(FRUIT_SPOTS[target]).to_lower()
 	if NEIGHBORS.has(target): return {"gardener":"Conversar com a horticultora","weaver":"Conversar com o artesão","cook":"Conversar com a cozinheira"}[target]
 	if target == "healer": return "Receber cuidados do pajé" if unwell(id) else "Conversar com o pajé"
 	if target.begins_with("plot"):
@@ -392,7 +435,7 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 		return {"mill":"Moinho · milho", "press":"Prensa · massa ralada, limão ou acerola", "stove":"Fogão a lenha", "wash":"Tanque · traga mandioca", "grater":"Ralar milho ou mandioca lavada", "sieve":"Peneirar massa prensada", "pan":"Chapa · ovos, leite ou massa peneirada", "oven":"Forno · massa de milho ou de broa"}[target]
 	match target:
 		"teacher": return "Conversar com a professora Célia"
-		"well": return "Encher regador no poço · %d/%d" % [state.water,water_capacity()] if state.water < water_capacity() else "Regador cheio"
+		"well": return "Encher regador no poço · %d/%d" % [state.water,water_capacity()]
 		"warehouse":
 			var level := int(state.levels[clampi(tool,0,3)])
 			var name: String = TOOL_NAMES[clampi(tool,0,3)]
@@ -400,7 +443,10 @@ func prompt(id: int, target: String, tool: int = 0) -> String:
 			return "Melhorar %s · Nv. %d → %d · %d moedas" % [name,level,level+1,UPGRADE_COST[level]]
 		"hen": return "Recolher ovos"
 		"cow": return "Tirar leite"
-		"mix": return "Bancada · " + (str(state.bowl) if state.bowl != "" else "acrescentar ingrediente")
+		"mix":
+			if state.bowl == "": return "Colocar " + hand + " na tigela"
+			if hand == "": return "Retirar " + str(state.bowl)
+			return "Misturar · " + str(BLENDS[blend_key(state.bowl,hand)])
 		"home": return "Chegar em casa" if state.family == "back" else "Chamar as crianças para a escola"
 		"school": return "Buscar as crianças" if state.family == "school" else "Chegar à escola"
 		"table": return "Servir a refeição"

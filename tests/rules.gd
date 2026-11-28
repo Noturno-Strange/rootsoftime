@@ -38,6 +38,21 @@ func run() -> void:
 	check(not preview.hint_is_passive(1,"grain_stall"),"Milho habilita a venda de grãos")
 	village.land.reveal_rooms(village.land.SITES.home[0]+Vector2(180,-20),1)
 	check(village.land.roofs.home.modulate.a < 0.5 and not village.land.interiors.home.visible,"Lateral da casa revela o jogador pelo exterior")
+	var kitchen := Farm.new()
+	for key in ["well","tray","storage","mix","table","school"]:
+		check(kitchen.hint_is_passive(1,key),"Sem comando inativo em "+key)
+	for key in ["cow","hen","orchard","lime_drop"]:
+		kitchen.hands[1] = "Milho"
+		check(kitchen.hint_is_passive(1,key),"Cesto ocupado em "+key)
+		kitchen.hands[1] = ""
+		check(not kitchen.hint_is_passive(1,key) and not kitchen.act(1,key).is_empty(),"Coleta disponível em "+key)
+		kitchen.hands[1] = ""
+		check(kitchen.hint_is_passive(1,key),"Intervalo entre coletas em "+key)
+	kitchen.state.bowl = "Manga"
+	kitchen.hands[1] = "Milho"
+	check(kitchen.hint_is_passive(1,"mix"),"Tigela recusa mistura incompatível")
+	kitchen.hands[1] = "Leite"
+	check(not kitchen.hint_is_passive(1,"mix") and "Leite com manga" in kitchen.prompt(1,"mix"),"Tigela indica mistura disponível")
 	var visitor := Farm.new()
 	for stall: String in village.land.BOOTHS:
 		var merchant: CharacterBody2D = village.land.merchants[stall]

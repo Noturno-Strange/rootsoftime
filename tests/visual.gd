@@ -75,6 +75,10 @@ func run() -> void:
 	await snap("escola")
 	farmer.position = village.land.SITES.school[0] + Vector2(0,-30)
 	await create_timer(0.7).timeout
+	village.farm.state.family = "school"
+	await create_timer(0.2).timeout
+	for kid in village.kids:
+		if not kid.visible or not village.land.inside_building("school",kid.position): failed = true
 	await snap("sala_de_aula")
 	village.hud.toggle()
 	village.hud.tabs.current_tab = 1
